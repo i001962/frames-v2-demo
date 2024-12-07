@@ -47,7 +47,11 @@ export default function Demo({ title = "d33m EPL" }: { title?: string }) {
         const data = await response.json();
         setApiResponse(data); // Store the API response in state
       } catch (err) {
-        setError(err.message); // Handle any errors that occurred during the fetch
+        if (err instanceof Error) {
+          setError(err.message); // Access the `message` property safely
+        } else {
+          setError('An unknown error occurred'); // Fallback error message if `err` isn't an instance of `Error`
+        }      
       } finally {
         setLoading(false); // End loading
       }
