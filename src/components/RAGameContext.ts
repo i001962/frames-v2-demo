@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import sendOpenAi from './sendOpenAi';
 
 const fillGameContext = async (sixCharacterString: string): Promise<any> => {
