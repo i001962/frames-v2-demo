@@ -1,8 +1,9 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 
 import { useEffect, useCallback, useState } from "react";
 import sdk, { FrameContext } from "@farcaster/frame-sdk";
-import { Button } from "~/components/ui/Button";
 import Image from "next/image";
 import RAGameContext from "./RAGameContext";
 
