@@ -7,7 +7,7 @@ import sdk, { FrameContext } from "@farcaster/frame-sdk";
 import Image from "next/image";
 import RAGameContext from "./RAGameContext";
 
-export default function Demo({ title = "d33m EPL" }: { title?: string }) {
+export default function Demo({ title = "d33m" }: { title?: string }) {
   const [isSDKLoaded, setIsSDKLoaded] = useState(false);
   const [context, setContext] = useState<FrameContext>();
   const [isContextOpen, setIsContextOpen] = useState(true); // Start with the context expanded
@@ -113,7 +113,7 @@ export default function Demo({ title = "d33m EPL" }: { title?: string }) {
               }}
               className="dropdown-button cursor-pointer flex items-center mb-2 w-full"
             >
-              <span className="mt-2 mb-2 flex flex-grow items-center ml-2 mr-2 text-notWhite">
+              <span className="mt-2 mb-2 flex flex-grow items-center ml-2 mr-2">
                 <Image
                   src={homeTeamLogo || '/assets/defifa_spinner.gif'}
                   alt="Home Team Logo"
@@ -122,7 +122,7 @@ export default function Demo({ title = "d33m EPL" }: { title?: string }) {
                   height={20}
                   style={{ marginRight: '8px' }}
                 />
-                {homeTeam} v {awayTeam}
+                {homeTeam} vs {awayTeam}
                 <Image
                   src={awayTeamLogo || '/assets/defifa_spinner.gif'}
                   alt="Away Team Logo"
@@ -132,7 +132,7 @@ export default function Demo({ title = "d33m EPL" }: { title?: string }) {
                   style={{ marginRight: '8px' }}
                 />
               </span>
-              <span className="ml-2 text-sm text-lightPurple font-semibold">
+              <span className="m-2 text-sm font-semibold">
                 {eventStarted ? scores : dateTimeString}
               </span>
             </button>
@@ -146,11 +146,11 @@ export default function Demo({ title = "d33m EPL" }: { title?: string }) {
 
   return (
     <div className="w-[300px] mx-auto py-4 px-2">
-      <h1 className="text-2xl font-bold text-center mb-4">{title}</h1>
+      <h1 className="text-2xl font-bold text-center text-notWhite mb-4">{title}</h1>
 
       <div className="mb-4">
         <h2 className="font-2xl font-bold"></h2>
-        <button onClick={toggleContext} className="flex items-center gap-2 transition-colors">
+        <button onClick={toggleContext} className="flex items-center gap-2 transition-colors text-lightPurple">
           <span className={`transform transition-transform ${isContextOpen ? "rotate-90" : ""}`}>➤</span>
           {selectedMatch ? (
             <div className="flex items-center">
@@ -175,7 +175,7 @@ export default function Demo({ title = "d33m EPL" }: { title?: string }) {
           ) : "Select a match"}
         </button>
         {isContextOpen && (
-          <div className="p-4 mt-2 bg-gray-100 dark:bg-gray-800 rounded-lg">
+          <div className="p-4 mt-2 bg-purplePanel text-lightPurple rounded-lg">
             {loading ? (
               <div>Loading data...</div>
             ) : error ? (
@@ -189,16 +189,16 @@ export default function Demo({ title = "d33m EPL" }: { title?: string }) {
         )}
       </div>
 
-      <div className="mt-4">
-        <h2 className="font-2xl font-bold">Match Summary</h2>
+      <div className="mt-4  text-lightPurple  bg-purplePanel">
+        <h2 className="font-2xl text-notWhite font-bold">Match Summary</h2>
         {gameContext ? (
-          <div className="p-4 bg-gray-100 dark:bg-gray-800 rounded-lg">
+          <div className="p-4 bg-purplePanel text-lightPurple rounded-lg">
             <pre className="text-sm whitespace-pre-wrap break-words">{gameContext}</pre>
           </div>
         ) : loading ? (
           <div>Loading match context is like waiting for VAR...</div> // Display loading message while context is being fetched
         ) : (
-          <div>No match summary available.</div>
+          <div></div>
         )}
       </div>
 

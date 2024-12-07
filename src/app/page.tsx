@@ -7,7 +7,7 @@ const frame = {
   version: "next",
   imageUrl: `${appUrl}/opengraph-image`,
   button: {
-    title: "Launch Frame",
+    title: "See match summaries",
     action: {
       type: "launch_frame",
       name: "d33m EPL",
