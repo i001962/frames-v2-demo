@@ -1,473 +1,202 @@
 "use client";
 
-import { useEffect, useCallback, useState, useMemo } from "react";
-import sdk, {
-  FrameNotificationDetails,
-  type FrameContext,
-} from "@farcaster/frame-sdk";
-import {
-  useAccount,
-  useSendTransaction,
-  useSignMessage,
-  useSignTypedData,
-  useWaitForTransactionReceipt,
-  useDisconnect,
-  useConnect,
-  useSwitchChain,
-  useChainId,
-} from "wagmi";
-
-import { config } from "~/components/providers/WagmiProvider";
+import { useEffect, useCallback, useState } from "react";
+import sdk, { FrameContext } from "@farcaster/frame-sdk";
 import { Button } from "~/components/ui/Button";
-import { truncateAddress } from "~/lib/truncateAddress";
-import { base, optimism } from "wagmi/chains";
-import { BaseError, UserRejectedRequestError } from "viem";
+import Image from "next/image";
+import RAGameContext from "./RAGameContext";
 
-export default function Demo(
-  { title }: { title?: string } = { title: "Frames v2 Demo" }
-) {
+export default function Demo({ title = "d33m EPL" }: { title?: string }) {
   const [isSDKLoaded, setIsSDKLoaded] = useState(false);
   const [context, setContext] = useState<FrameContext>();
-  const [isContextOpen, setIsContextOpen] = useState(false);
-  const [txHash, setTxHash] = useState<string | null>(null);
-  const [addFrameResult, setAddFrameResult] = useState("");
-  const [notificationDetails, setNotificationDetails] =
-    useState<FrameNotificationDetails | null>(null);
-  const [sendNotificationResult, setSendNotificationResult] = useState("");
+  const [isContextOpen, setIsContextOpen] = useState(true); // Start with the context expanded
+  const [apiResponse, setApiResponse] = useState<any>(null); // State to store API response from ESPN API
+  const [loading, setLoading] = useState(false); // State to manage loading state
+  const [error, setError] = useState<string | null>(null); // State to handle error if any
+  const [selectedMatch, setSelectedMatch] = useState<any>(null); // Store selected match with team logos
+  const [gameContext, setGameContext] = useState<any>(null); // State to store the game context data
 
-  const { address, isConnected } = useAccount();
-  const chainId = useChainId();
-
-  const {
-    sendTransaction,
-    error: sendTxError,
-    isError: isSendTxError,
-    isPending: isSendTxPending,
-  } = useSendTransaction();
-
-  const { isLoading: isConfirming, isSuccess: isConfirmed } =
-    useWaitForTransactionReceipt({
-      hash: txHash as `0x${string}`,
-    });
-
-  const {
-    signTypedData,
-    error: signTypedError,
-    isError: isSignTypedError,
-    isPending: isSignTypedPending,
-  } = useSignTypedData();
-
-  const { disconnect } = useDisconnect();
-  const { connect } = useConnect();
-
-  const {
-    switchChain,
-    error: switchChainError,
-    isError: isSwitchChainError,
-    isPending: isSwitchChainPending,
-  } = useSwitchChain();
-
-  const handleSwitchChain = useCallback(() => {
-    switchChain({ chainId: chainId === base.id ? optimism.id : base.id });
-  }, [switchChain, chainId]);
+  const apiUrl = 'https://site.api.espn.com/apis/site/v2/sports/soccer/eng.1/scoreboard'; // ESPN Soccer API endpoint
 
   useEffect(() => {
     const load = async () => {
-      setContext(await sdk.context);
+      const ctx = await sdk.context;
+      setContext(ctx);
       sdk.actions.ready();
     };
+
     if (sdk && !isSDKLoaded) {
       setIsSDKLoaded(true);
       load();
     }
   }, [isSDKLoaded]);
 
-  const openUrl = useCallback(() => {
-    sdk.actions.openUrl("https://www.youtube.com/watch?v=dQw4w9WgXcQ");
-  }, []);
+  // Trigger the API call when the page loads or the context is toggled
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true); // Start loading before the fetch request
+      setError(null); // Reset any previous errors
 
-  const openWarpcastUrl = useCallback(() => {
-    sdk.actions.openUrl("https://warpcast.com/~/compose");
-  }, []);
-
-  const close = useCallback(() => {
-    sdk.actions.close();
-  }, []);
-
-  const addFrame = useCallback(async () => {
-    try {
-      // setAddFrameResult("");
-      setNotificationDetails(null);
-
-      const result = await sdk.actions.addFrame();
-
-      if (result.added) {
-        if (result.notificationDetails) {
-          setNotificationDetails(result.notificationDetails);
+      try {
+        const response = await fetch(apiUrl); // Call ESPN Soccer API
+        if (!response.ok) {
+          throw new Error("Failed to fetch data");
         }
-        setAddFrameResult(
-          result.notificationDetails
-            ? `Added, got notificaton token ${result.notificationDetails.token} and url ${result.notificationDetails.url}`
-            : "Added, got no notification details"
-        );
-      } else {
-        setAddFrameResult(`Not added: ${result.reason}`);
+
+        const data = await response.json();
+        setApiResponse(data); // Store the API response in state
+      } catch (err) {
+        setError(err.message); // Handle any errors that occurred during the fetch
+      } finally {
+        setLoading(false); // End loading
       }
-    } catch (error) {
-      setAddFrameResult(`Error: ${error}`);
-    }
+    };
+
+    // Fetch the data when the component loads
+    fetchData();
   }, []);
 
-  const sendNotification = useCallback(async () => {
-    setSendNotificationResult("");
-    if (!notificationDetails) {
-      return;
-    }
+  // Fetch the game context based on the home and away teams
+  const fetchGameContext = (homeTeam: string, awayTeam: string) => {
+    setGameContext(null); // Clear the game context when a new match is selected
+    setLoading(true); // Show the loading state
 
-    try {
-      const response = await fetch("/api/send-notification", {
-        method: "POST",
-        mode: "same-origin",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          token: notificationDetails.token,
-          url: notificationDetails.url,
-          targetUrl: window.location.href,
-        }),
+    const eventId = `${homeTeam}${awayTeam}`; // Concatenate home and away team to create eventId
+    RAGameContext(eventId) // Call the RAGameContext function
+      .then((data) => {
+        setGameContext(data); // Store the game context data
+        setLoading(false); // Hide loading after the context is retrieved
+      })
+      .catch((err) => {
+        setGameContext("Failed to fetch game context " + eventId); // Store the error message
+        setLoading(false); // Hide loading after the error
+        console.error("Failed to fetch game context", err);
       });
+  };
 
-      if (response.status === 200) {
-        setSendNotificationResult("Success");
-        return;
-      }
-
-      const data = await response.text();
-      setSendNotificationResult(`Error: ${data}`);
-    } catch (error) {
-      setSendNotificationResult(`Error: ${error}`);
-    }
-  }, [notificationDetails]);
-
-  const sendTx = useCallback(() => {
-    sendTransaction(
-      {
-        // call yoink() on Yoink contract
-        to: "0x4bBFD120d9f352A0BEd7a014bd67913a2007a878",
-        data: "0x9846cd9efc000023c0",
-      },
-      {
-        onSuccess: (hash) => {
-          setTxHash(hash);
-        },
-      }
-    );
-  }, [sendTransaction]);
-
-  const signTyped = useCallback(() => {
-    signTypedData({
-      domain: {
-        name: "Frames v2 Demo",
-        version: "1",
-        chainId,
-      },
-      types: {
-        Message: [{ name: "content", type: "string" }],
-      },
-      message: {
-        content: "Hello from Frames v2!",
-      },
-      primaryType: "Message",
-    });
-  }, [chainId, signTypedData]);
-
-  const toggleContext = useCallback(() => {
-    setIsContextOpen((prev) => !prev);
+  const toggleContext = useCallback(async () => {
+    setIsContextOpen(prev => !prev);
   }, []);
 
-  if (!isSDKLoaded) {
-    return <div>Loading...</div>;
-  }
+  const renderEvent = (event: any) => {
+    const homeTeam = event.shortName.split('@')[1].trim().toLowerCase();
+    const awayTeam = event.shortName.split('@')[0].trim().toLowerCase();
+    const eventTime = new Date(event.date);
+    const scores = event.competitions[0]?.competitors.map((c: any) => c.score).join('  -  ');
+    const eventStarted = new Date() >= new Date(event.date);
+    const dateTimeString = eventTime.toLocaleDateString('en-GB', { month: '2-digit', day: '2-digit' }) + 
+      ' ' + eventTime.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
+
+    // Get team logos for the selected match
+    const homeTeamLogo = event.competitions[0]?.competitors[0]?.team.logo;
+    const awayTeamLogo = event.competitions[0]?.competitors[1]?.team.logo;
+
+    return (
+      <div key={event.id} className="sidebar">
+        <div className="dropdown-content">
+          <div className="hover:bg-deepPink cursor-pointer">
+            <button
+              onClick={() => {
+                setSelectedMatch({
+                  homeTeam: `${homeTeam}`,
+                  awayTeam: `${awayTeam}`,
+                  homeLogo: homeTeamLogo,
+                  awayLogo: awayTeamLogo,
+                }); // Store the selected match along with team logos
+                fetchGameContext(homeTeam, awayTeam); // Fetch game context when a match is tapped
+                toggleContext(); // Close the context when a match is tapped
+              }}
+              className="dropdown-button cursor-pointer flex items-center mb-2 w-full"
+            >
+              <span className="mt-2 mb-2 flex flex-grow items-center ml-2 mr-2 text-notWhite">
+                <Image
+                  src={homeTeamLogo || '/assets/defifa_spinner.gif'}
+                  alt="Home Team Logo"
+                  className="w-8 h-8"
+                  width={20}
+                  height={20}
+                  style={{ marginRight: '8px' }}
+                />
+                {homeTeam} v {awayTeam}
+                <Image
+                  src={awayTeamLogo || '/assets/defifa_spinner.gif'}
+                  alt="Away Team Logo"
+                  className="w-8 h-8"
+                  width={20}
+                  height={20}
+                  style={{ marginRight: '8px' }}
+                />
+              </span>
+              <span className="ml-2 text-sm text-lightPurple font-semibold">
+                {eventStarted ? scores : dateTimeString}
+              </span>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  if (!isSDKLoaded) return <div>Waiting for VAR...</div>;
 
   return (
     <div className="w-[300px] mx-auto py-4 px-2">
       <h1 className="text-2xl font-bold text-center mb-4">{title}</h1>
 
       <div className="mb-4">
-        <h2 className="font-2xl font-bold">Context</h2>
-        <button
-          onClick={toggleContext}
-          className="flex items-center gap-2 transition-colors"
-        >
-          <span
-            className={`transform transition-transform ${
-              isContextOpen ? "rotate-90" : ""
-            }`}
-          >
-            ➤
-          </span>
-          Tap to expand
+        <h2 className="font-2xl font-bold"></h2>
+        <button onClick={toggleContext} className="flex items-center gap-2 transition-colors">
+          <span className={`transform transition-transform ${isContextOpen ? "rotate-90" : ""}`}>➤</span>
+          {selectedMatch ? (
+            <div className="flex items-center">
+              <Image
+                src={selectedMatch.homeLogo || '/assets/defifa_spinner.gif'}
+                alt="Home Team Logo"
+                className="w-8 h-8"
+                width={20}
+                height={20}
+                style={{ marginRight: '8px' }}
+              />
+              {selectedMatch.homeTeam} vs {selectedMatch.awayTeam}
+              <Image
+                src={selectedMatch.awayLogo || '/assets/defifa_spinner.gif'}
+                alt="Away Team Logo"
+                className="w-8 h-8"
+                width={20}
+                height={20}
+                style={{ marginLeft: '8px' }}
+              />
+            </div>
+          ) : "Select a match"}
         </button>
-
         {isContextOpen && (
           <div className="p-4 mt-2 bg-gray-100 dark:bg-gray-800 rounded-lg">
-            <pre className="font-mono text-xs whitespace-pre-wrap break-words max-w-[260px] overflow-x-">
-              {JSON.stringify(context, null, 2)}
-            </pre>
+            {loading ? (
+              <div>Loading data...</div>
+            ) : error ? (
+              <div className="text-red-500">{error}</div>
+            ) : apiResponse ? (
+              apiResponse.events.map((event: any) => renderEvent(event)) // Render events from API response
+            ) : (
+              <div>No data available.</div>
+            )}
           </div>
         )}
       </div>
 
-      <div>
-        <h2 className="font-2xl font-bold">Actions</h2>
-
-        <div className="mb-4">
-          <div className="p-2 bg-gray-100 dark:bg-gray-800 rounded-lg my-2">
-            <pre className="font-mono text-xs whitespace-pre-wrap break-words max-w-[260px] overflow-x-">
-              sdk.actions.openUrl
-            </pre>
+      <div className="mt-4">
+        <h2 className="font-2xl font-bold">Match Summary</h2>
+        {gameContext ? (
+          <div className="p-4 bg-gray-100 dark:bg-gray-800 rounded-lg">
+            <pre className="text-sm whitespace-pre-wrap break-words">{gameContext}</pre>
           </div>
-          <Button onClick={openUrl}>Open Link</Button>
-        </div>
-
-        <div className="mb-4">
-          <div className="p-2 bg-gray-100 dark:bg-gray-800 rounded-lg my-2">
-            <pre className="font-mono text-xs whitespace-pre-wrap break-words max-w-[260px] overflow-x-">
-              sdk.actions.openUrl
-            </pre>
-          </div>
-          <Button onClick={openWarpcastUrl}>Open Warpcast Link</Button>
-        </div>
-
-        <div className="mb-4">
-          <div className="p-2 bg-gray-100 dark:bg-gray-800 rounded-lg my-2">
-            <pre className="font-mono text-xs whitespace-pre-wrap break-words max-w-[260px] overflow-x-">
-              sdk.actions.close
-            </pre>
-          </div>
-          <Button onClick={close}>Close Frame</Button>
-        </div>
-
-        <div className="mb-4">
-          <div className="p-2 bg-gray-100 dark:bg-gray-800 rounded-lg my-2">
-            <pre className="font-mono text-xs whitespace-pre-wrap break-words max-w-[260px] overflow-x-">
-              sdk.actions.addFrame
-            </pre>
-          </div>
-          {addFrameResult && (
-            <div className="mb-2">Add frame result: {addFrameResult}</div>
-          )}
-          <Button onClick={addFrame}>Add frame to client</Button>
-        </div>
-      </div>
-
-      {notificationDetails && (
-        <div>
-          <h2 className="font-2xl font-bold">Notify</h2>
-
-          {sendNotificationResult && (
-            <div className="mb-2">
-              Send notification result: {sendNotificationResult}
-            </div>
-          )}
-          <div className="mb-4">
-            <Button onClick={sendNotification}>Send notification</Button>
-          </div>
-        </div>
-      )}
-
-      <div>
-        <h2 className="font-2xl font-bold">Wallet</h2>
-
-        {address && (
-          <div className="my-2 text-xs">
-            Address: <pre className="inline">{truncateAddress(address)}</pre>
-          </div>
-        )}
-
-        {chainId && (
-          <div className="my-2 text-xs">
-            Chain ID: <pre className="inline">{chainId}</pre>
-          </div>
-        )}
-
-        <div className="mb-4">
-          <Button
-            onClick={() =>
-              isConnected
-                ? disconnect()
-                : connect({ connector: config.connectors[0] })
-            }
-          >
-            {isConnected ? "Disconnect" : "Connect"}
-          </Button>
-        </div>
-
-        <div className="mb-4">
-          <SignMessage />
-        </div>
-
-        {isConnected && (
-          <>
-            <div className="mb-4">
-              <SendEth />
-            </div>
-            <div className="mb-4">
-              <Button
-                onClick={sendTx}
-                disabled={!isConnected || isSendTxPending}
-                isLoading={isSendTxPending}
-              >
-                Send Transaction (contract)
-              </Button>
-              {isSendTxError && renderError(sendTxError)}
-              {txHash && (
-                <div className="mt-2 text-xs">
-                  <div>Hash: {truncateAddress(txHash)}</div>
-                  <div>
-                    Status:{" "}
-                    {isConfirming
-                      ? "Confirming..."
-                      : isConfirmed
-                      ? "Confirmed!"
-                      : "Pending"}
-                  </div>
-                </div>
-              )}
-            </div>
-            <div className="mb-4">
-              <Button
-                onClick={signTyped}
-                disabled={!isConnected || isSignTypedPending}
-                isLoading={isSignTypedPending}
-              >
-                Sign Typed Data
-              </Button>
-              {isSignTypedError && renderError(signTypedError)}
-            </div>
-            <div className="mb-4">
-              <Button
-                onClick={handleSwitchChain}
-                disabled={isSwitchChainPending}
-                isLoading={isSwitchChainPending}
-              >
-                Switch to {chainId === base.id ? "Optimism" : "Base"}
-              </Button>
-              {isSwitchChainError && renderError(switchChainError)}
-            </div>
-          </>
+        ) : loading ? (
+          <div>Loading match context is like waiting for VAR...</div> // Display loading message while context is being fetched
+        ) : (
+          <div>No match summary available.</div>
         )}
       </div>
+
     </div>
   );
-}
-
-function SignMessage() {
-  const { isConnected } = useAccount();
-  const { connectAsync } = useConnect();
-  const {
-    signMessage,
-    data: signature,
-    error: signError,
-    isError: isSignError,
-    isPending: isSignPending,
-  } = useSignMessage();
-
-  const handleSignMessage = useCallback(async () => {
-    if (!isConnected) {
-      await connectAsync({
-        chainId: base.id,
-        connector: config.connectors[0],
-      });
-    }
-
-    signMessage({ message: "Hello from Frames v2!" });
-  }, [connectAsync, isConnected, signMessage]);
-
-  return (
-    <>
-      <Button
-        onClick={handleSignMessage}
-        disabled={isSignPending}
-        isLoading={isSignPending}
-      >
-        Sign Message
-      </Button>
-      {isSignError && renderError(signError)}
-      {signature && (
-        <div className="mt-2 text-xs">
-          <div>Signature: {signature}</div>
-        </div>
-      )}
-    </>
-  );
-}
-
-function SendEth() {
-  const { isConnected, chainId } = useAccount();
-  const {
-    sendTransaction,
-    data,
-    error: sendTxError,
-    isError: isSendTxError,
-    isPending: isSendTxPending,
-  } = useSendTransaction();
-
-  const { isLoading: isConfirming, isSuccess: isConfirmed } =
-    useWaitForTransactionReceipt({
-      hash: data,
-    });
-
-  const toAddr = useMemo(() => {
-    // Protocol guild address
-    return chainId === base.id
-      ? "0x32e3C7fD24e175701A35c224f2238d18439C7dBC"
-      : "0xB3d8d7887693a9852734b4D25e9C0Bb35Ba8a830";
-  }, [chainId]);
-
-  const handleSend = useCallback(() => {
-    sendTransaction({
-      to: toAddr,
-      value: 1n,
-    });
-  }, [toAddr, sendTransaction]);
-
-  return (
-    <>
-      <Button
-        onClick={handleSend}
-        disabled={!isConnected || isSendTxPending}
-        isLoading={isSendTxPending}
-      >
-        Send Transaction (eth)
-      </Button>
-      {isSendTxError && renderError(sendTxError)}
-      {data && (
-        <div className="mt-2 text-xs">
-          <div>Hash: {truncateAddress(data)}</div>
-          <div>
-            Status:{" "}
-            {isConfirming
-              ? "Confirming..."
-              : isConfirmed
-              ? "Confirmed!"
-              : "Pending"}
-          </div>
-        </div>
-      )}
-    </>
-  );
-}
-
-const renderError = (error: Error | null) => {
-  if (!error) return null;
-  if (error instanceof BaseError) {
-  const isUserRejection = error.walk((e) => e instanceof UserRejectedRequestError)
-  
-    if (isUserRejection) {
-      return <div className="text-red-500 text-xs mt-1">Rejected by user.</div>;
-    }
-  }
-
-  return <div className="text-red-500 text-xs mt-1">{error.message}</div>;
 };
-
