@@ -1,8 +1,9 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import axios, { AxiosError } from 'axios';
-import { ToastContainer, ToastContentProps, toast } from 'react-toastify';
+import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-let conversationHistory: { role: string; content: any; }[] = [];
+const conversationHistory: { role: string; content: any; }[] = [];
 const MAX_TOKENS = 4096; // Adjust this according to the model's limits (for gpt-3.5-turbo, total tokens include input and output)
 
 const estimateTokens = (messages: { role: string; content: string; }[]): number => {
