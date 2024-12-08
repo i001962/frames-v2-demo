@@ -1,20 +1,21 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 
 import { useEffect, useCallback, useState } from "react";
 import sdk, { FrameContext } from "@farcaster/frame-sdk";
 import Image from "next/image";
 import RAGameContext from "./RAGameContext";
+import { Button } from "~/components/ui/Button";
 
 export default function Demo({ title = "d33m" }: { title?: string }) {
   const [isSDKLoaded, setIsSDKLoaded] = useState(false);
+  /* eslint-disable-next-line @typescript-eslint/no-unused-vars */
   const [context, setContext] = useState<FrameContext>();
   const [isContextOpen, setIsContextOpen] = useState(true); // Start with the context expanded
   const [apiResponse, setApiResponse] = useState<any>(null); // State to store API response from ESPN API
   const [loading, setLoading] = useState(false); // State to manage loading state
   const [error, setError] = useState<string | null>(null); // State to handle error if any
-  const [selectedMatch, setSelectedMatch] = useState<any>(null); // Store selected match with team logos
+  const [selectedMatch, setSelectedMatch] = useState<any>(null); // Store selected match with team logos, scores, etc.
   const [gameContext, setGameContext] = useState<any>(null); // State to store the game context data
 
   const apiUrl = 'https://site.api.espn.com/apis/site/v2/sports/soccer/eng.1/scoreboard'; // ESPN Soccer API endpoint
@@ -57,9 +58,8 @@ export default function Demo({ title = "d33m" }: { title?: string }) {
       }
     };
 
-    // Fetch the data when the component loads
-    fetchData();
-  }, []);
+    fetchData(); // Call the function to fetch the data
+  }, []); // This effect runs only on the initial render
 
   // Fetch the game context based on the home and away teams
   const fetchGameContext = (homeTeam: string, awayTeam: string) => {
@@ -79,22 +79,43 @@ export default function Demo({ title = "d33m" }: { title?: string }) {
       });
   };
 
-  const toggleContext = useCallback(async () => {
+  const toggleContext = useCallback(() => {
     setIsContextOpen(prev => !prev);
-  }, []);
+  }, []); // No conditional logic here
 
+  // Button to trigger external URL when clicked
+  const castSummary = useCallback(() => {
+    if (selectedMatch) {
+      const { competitors, homeTeam, awayTeam, homeScore, awayScore, clock, homeLogo, awayLogo } = selectedMatch;
+      const matchSummary = `${competitors}\n${homeTeam.toUpperCase()} ${homeScore} ${awayTeam.toUpperCase()} ${awayScore}\n${clock}\n\nUsing the d33m live match mini-app d33m-frames-v2.vercel.app cc @kmacb.eth `;
+      const encodedSummary = encodeURIComponent(matchSummary);
+      const url = `https://warpcast.com/~/compose?text=${encodedSummary}&channelKey=football&embeds[]=${homeLogo}&embeds[]=${awayLogo}`;
+
+      console.log("Opening URL:", url); // Log the URL for debugging
+      sdk.actions.openUrl(url); // Open the constructed URL
+    } else {
+      console.log("No match selected");
+    }
+  }, [selectedMatch]);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const renderEvent = (event: any) => {
+    console.log("Event data:", event);  
     const homeTeam = event.shortName.split('@')[1].trim().toLowerCase();
     const awayTeam = event.shortName.split('@')[0].trim().toLowerCase();
+    const competitors = event.name;
     const eventTime = new Date(event.date);
     const scores = event.competitions[0]?.competitors.map((c: any) => c.score).join('  -  ');
     const eventStarted = new Date() >= new Date(event.date);
     const dateTimeString = eventTime.toLocaleDateString('en-GB', { month: '2-digit', day: '2-digit' }) + 
       ' ' + eventTime.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
+    const clock = event.status.displayClock + ' ' + event.status.type.detail || '00:00'; // Get the display clock or default to '00:00'
 
     // Get team logos for the selected match
     const homeTeamLogo = event.competitions[0]?.competitors[0]?.team.logo;
     const awayTeamLogo = event.competitions[0]?.competitors[1]?.team.logo;
+    const homeScore = event.competitions[0]?.competitors[0]?.score;
+    const awayScore = event.competitions[0]?.competitors[1]?.score;
 
     return (
       <div key={event.id} className="sidebar">
@@ -105,9 +126,13 @@ export default function Demo({ title = "d33m" }: { title?: string }) {
                 setSelectedMatch({
                   homeTeam: `${homeTeam}`,
                   awayTeam: `${awayTeam}`,
+                  competitors: competitors,
                   homeLogo: homeTeamLogo,
                   awayLogo: awayTeamLogo,
-                }); // Store the selected match along with team logos
+                  homeScore: homeScore,
+                  awayScore: awayScore,
+                  clock: clock,
+                }); // Store the selected match along with team logos and scores
                 fetchGameContext(homeTeam, awayTeam); // Fetch game context when a match is tapped
                 toggleContext(); // Close the context when a match is tapped
               }}
@@ -162,7 +187,7 @@ export default function Demo({ title = "d33m" }: { title?: string }) {
                 height={20}
                 style={{ marginRight: '8px' }}
               />
-              {selectedMatch.homeTeam} vs {selectedMatch.awayTeam}
+              {selectedMatch.homeTeam} vs {selectedMatch.awayTeam} - {selectedMatch.homeScore} : {selectedMatch.awayScore}
               <Image
                 src={selectedMatch.awayLogo || '/assets/defifa_spinner.gif'}
                 alt="Away Team Logo"
@@ -189,11 +214,15 @@ export default function Demo({ title = "d33m" }: { title?: string }) {
         )}
       </div>
 
-      <div className="mt-4  text-lightPurple  bg-purplePanel">
+      <div className="mt-4 text-lightPurple bg-purplePanel">
         <h2 className="font-2xl text-notWhite font-bold">Match Summary</h2>
         {gameContext ? (
           <div className="p-4 bg-purplePanel text-lightPurple rounded-lg">
             <pre className="text-sm whitespace-pre-wrap break-words">{gameContext}</pre>
+            {/* Conditionally render the Cast button when the game context is available */}
+            <div className="mt-4">
+              <Button onClick={castSummary}>Cast AI Summary</Button>
+            </div>
           </div>
         ) : loading ? (
           <div>Loading match context is like waiting for VAR...</div> // Display loading message while context is being fetched
@@ -201,7 +230,6 @@ export default function Demo({ title = "d33m" }: { title?: string }) {
           <div></div>
         )}
       </div>
-
     </div>
   );
-};
+}
