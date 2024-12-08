@@ -22,9 +22,9 @@ export const revalidate = 300;
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
-    title: "EPL Match Summaries",
+    title: "EPL Live Match Summaries",
     openGraph: {
-      title: "EPL Match Summaries",
+      title: "EPL Live Match Summaries",
       description: "Get the live match summaries from the English Premier League",
     },
     other: {
