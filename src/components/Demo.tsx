@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useCallback, useState } from "react";
-import sdk, { FrameContext, FrameNotificationDetails } from "@farcaster/frame-sdk";
+import sdk, { FrameContext } from "@farcaster/frame-sdk";
 import Image from "next/image";
 import RAGameContext from "./RAGameContext";
 import { Button } from "~/components/ui/Button";
