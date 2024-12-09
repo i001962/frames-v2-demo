@@ -2,11 +2,12 @@
 "use client";
 
 import { useEffect, useCallback, useState } from "react";
-import sdk, { FrameContext } from "@farcaster/frame-sdk";
+import sdk, { FrameContext, FrameNotificationDetails } from "@farcaster/frame-sdk";
 import Image from "next/image";
 import RAGameContext from "./RAGameContext";
 import { Button } from "~/components/ui/Button";
 
+/* eslint-disable-next-line @typescript-eslint/no-unused-vars */
 export default function Demo({ title = "d33m" }: { title?: string }) {
   const [isSDKLoaded, setIsSDKLoaded] = useState(false);
   /* eslint-disable-next-line @typescript-eslint/no-unused-vars */
@@ -17,6 +18,10 @@ export default function Demo({ title = "d33m" }: { title?: string }) {
   const [error, setError] = useState<string | null>(null); // State to handle error if any
   const [selectedMatch, setSelectedMatch] = useState<any>(null); // Store selected match with team logos, scores, etc.
   const [gameContext, setGameContext] = useState<any>(null); // State to store the game context data
+  const [addFrameResult, setAddFrameResult] = useState("");
+  const [notificationDetails, setNotificationDetails] = useState<FrameNotificationDetails | null>(null);
+  /* eslint-disable-next-line @typescript-eslint/no-unused-vars */
+  const [sendNotificationResult, setSendNotificationResult] = useState("");
 
   const apiUrl = 'https://site.api.espn.com/apis/site/v2/sports/soccer/eng.1/scoreboard'; // ESPN Soccer API endpoint
 
@@ -82,6 +87,61 @@ export default function Demo({ title = "d33m" }: { title?: string }) {
   const toggleContext = useCallback(() => {
     setIsContextOpen(prev => !prev);
   }, []); // No conditional logic here
+
+  const sendNotification = useCallback(async () => {
+    setSendNotificationResult("");
+    if (!notificationDetails) {
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/send-notification", {
+        method: "POST",
+        mode: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          token: notificationDetails.token,
+          url: notificationDetails.url,
+          targetUrl: window.location.href,
+        }),
+      });
+
+      if (response.status === 200) {
+        setSendNotificationResult("Success");
+        return;
+      }
+
+      const data = await response.text();
+      setSendNotificationResult(`Error: ${data}`);
+    } catch (error) {
+      setSendNotificationResult(`Error: ${error}`);
+    }
+  }, [notificationDetails]);
+  
+  const addFrame = useCallback(async () => {
+    try {
+      // setAddFrameResult("");
+      setNotificationDetails(null);
+
+      const result = await sdk.actions.addFrame();
+
+      if (result.added) {
+        if (result.notificationDetails) {
+          setNotificationDetails(result.notificationDetails);
+        }
+        setAddFrameResult(
+          result.notificationDetails
+            ? `Added, got notificaton token ${result.notificationDetails.token} and url ${result.notificationDetails.url}`
+            : "Added, got no notification details"
+        );
+        sendNotification();
+      } else {
+        setAddFrameResult(`Not added: ${result.reason}`);
+      }
+    } catch (error) {
+      setAddFrameResult(`Error: ${error}`);
+    }
+  }, [sendNotification]);
 
   // Button to trigger external URL when clicked
   const castSummary = useCallback(() => {
@@ -171,8 +231,7 @@ export default function Demo({ title = "d33m" }: { title?: string }) {
 
   return (
     <div className="w-[300px] mx-auto py-4 px-2">
-      <h1 className="text-2xl font-bold text-center text-notWhite mb-4">{title}</h1>
-
+      {/* <h1 className="text-2xl font-bold text-center text-notWhite mb-4">{title}</h1> */}
       <div className="mb-4">
         <h2 className="font-2xl font-bold"></h2>
         <button onClick={toggleContext} className="flex items-center gap-2 transition-colors text-lightPurple">
@@ -220,8 +279,15 @@ export default function Demo({ title = "d33m" }: { title?: string }) {
           <div className="p-4 bg-purplePanel text-lightPurple rounded-lg">
             <pre className="text-sm whitespace-pre-wrap break-words">{gameContext}</pre>
             {/* Conditionally render the Cast button when the game context is available */}
+          
             <div className="mt-4">
-              <Button onClick={castSummary}>Cast AI Summary</Button>
+              <Button onClick={castSummary}>Cast</Button>
+            </div>
+            <div className="mt-4">
+              {addFrameResult && (
+                <div className="mb-2 text-fontRed">Add app result: {addFrameResult}</div>
+              )}
+              <Button onClick={addFrame}>Add app</Button>
             </div>
           </div>
         ) : loading ? (
