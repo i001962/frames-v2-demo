@@ -18,10 +18,10 @@ export default function Demo({ title = "d33m" }: { title?: string }) {
   const [error, setError] = useState<string | null>(null); // State to handle error if any
   const [selectedMatch, setSelectedMatch] = useState<any>(null); // Store selected match with team logos, scores, etc.
   const [gameContext, setGameContext] = useState<any>(null); // State to store the game context data
-  const [addFrameResult, setAddFrameResult] = useState("");
-  const [notificationDetails, setNotificationDetails] = useState<FrameNotificationDetails | null>(null);
+  //const [addFrameResult, setAddFrameResult] = useState("");
+  //const [notificationDetails, setNotificationDetails] = useState<FrameNotificationDetails | null>(null);
   /* eslint-disable-next-line @typescript-eslint/no-unused-vars */
-  const [sendNotificationResult, setSendNotificationResult] = useState("");
+  //const [sendNotificationResult, setSendNotificationResult] = useState("");
 
   const apiUrl = 'https://site.api.espn.com/apis/site/v2/sports/soccer/eng.1/scoreboard'; // ESPN Soccer API endpoint
 
@@ -88,7 +88,7 @@ export default function Demo({ title = "d33m" }: { title?: string }) {
     setIsContextOpen(prev => !prev);
   }, []); // No conditional logic here
 
-  const sendNotification = useCallback(async () => {
+/*   const sendNotification = useCallback(async () => {
     setSendNotificationResult("");
     if (!notificationDetails) {
       return;
@@ -142,7 +142,7 @@ export default function Demo({ title = "d33m" }: { title?: string }) {
       setAddFrameResult(`Error: ${error}`);
     }
   }, [sendNotification]);
-
+ */
   // Button to trigger external URL when clicked
   const castSummary = useCallback(() => {
     if (selectedMatch) {
@@ -283,12 +283,12 @@ export default function Demo({ title = "d33m" }: { title?: string }) {
             <div className="mt-4">
               <Button onClick={castSummary}>Cast</Button>
             </div>
-            <div className="mt-4">
+           {/*  <div className="mt-4">
               {addFrameResult && (
                 <div className="mb-2 text-fontRed">Add app result: {addFrameResult}</div>
               )}
               <Button onClick={addFrame}>Add app</Button>
-            </div>
+            </div> */}
           </div>
         ) : loading ? (
           <div>Loading match context is like waiting for VAR...</div> // Display loading message while context is being fetched
