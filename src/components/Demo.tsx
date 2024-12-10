@@ -76,35 +76,41 @@ export default function Demo({ title = "d33m" }: { title?: string }) {
         .select('fname, rank, last_name, total, fav_team')
         .eq('last_name', String(casterFid)) // Match last_name (casterFid)
         .single();
-
+  
       if (error) {
         throw error;
       }
-
+  
       if (data) {
-        // Fetch additional team data using the favorite team
-        const { data: teamsData, error: teamsError } = await supabase
-          .from('teams')
-          .select('id, name')
-          .eq('id', data.fav_team)
-          .single();
-
-        if (teamsError) {
-          throw teamsError;
+        // Check if fav_team is not null before querying the teams table
+        if (data.fav_team !== null) {
+          const { data: teamsData, error: teamsError } = await supabase
+            .from('teams')
+            .select('id, name')
+            .eq('id', data.fav_team)
+            .single();
+  
+          if (teamsError) {
+            throw teamsError;
+          }
+  
+          const userInfo = {
+            username: data.fname,
+            total: data.total,
+            teamName: teamsData?.name || "No team set"
+          };
+  
+          setUserInfo(userInfo); // Store the user information
+        } else {
+          console.log("No favorite team set for this user.");
+          setUserInfo({ username: data.fname, total: data.total, teamName: "No team set" });
         }
-
-        const userInfo = {
-          username: data.fname,
-          total: data.total,
-          teamName: teamsData?.name || "No team set"
-        };
-
-        setUserInfo(userInfo); // Store the user information
       }
     } catch (err) {
       console.error("Error fetching user data:", err);
     }
   };
+  
 
   const fetchGameContext = (homeTeam: string, awayTeam: string) => {
     setGameContext(null);
