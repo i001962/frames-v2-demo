@@ -177,7 +177,7 @@ export default function Demo({ title = "d33m" }: { title?: string }) {
   // If ctx is defined, render the app content
   return (
     <div className="w-[300px] mx-auto py-4 px-2">
-      <h1 className="text-2xl font-bold text-center mb-4">{title}</h1>
+      <h1 className="text-2xl font-bold text-center text-notWhite mb-4">{title}</h1>
       <div className="mb-4">
         <button onClick={toggleContext} className="flex items-center gap-2 transition-colors text-lightPurple">
           <span className={`transform transition-transform ${isContextOpen ? "rotate-90" : ""}`}>➤</span>
@@ -191,7 +191,7 @@ export default function Demo({ title = "d33m" }: { title?: string }) {
                 height={20}
                 style={{ marginRight: '8px' }}
               />
-              {selectedMatch.homeTeam} vs {selectedMatch.awayTeam} - {selectedMatch.homeScore} : {selectedMatch.awayScore}
+              {selectedMatch.homeTeam} {selectedMatch.homeScore} - {selectedMatch.awayScore} {selectedMatch.awayTeam}  
               <Image
                 src={selectedMatch.awayLogo || '/assets/defifa_spinner.gif'}
                 alt="Away Team Logo"
@@ -219,9 +219,9 @@ export default function Demo({ title = "d33m" }: { title?: string }) {
       </div>
 
       <div className="mt-4 text-lightPurple bg-purplePanel">
-        <h2 className="font-2xl text-notWhite font-bold">Match Summary</h2>
         {gameContext ? (
           <div className="p-4 bg-purplePanel text-lightPurple rounded-lg">
+            <h2 className="font-2xl text-notWhite font-bold">Match Summary</h2>
             <pre className="text-sm whitespace-pre-wrap break-words">{gameContext}</pre>
             <div className="mt-4">
               <Button onClick={castSummary}>Cast</Button>
