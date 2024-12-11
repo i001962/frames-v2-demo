@@ -213,7 +213,7 @@ export default function Demo({ title = "d33m" }: { title?: string }) {
                   height={20}
                   style={{ marginRight: '8px' }}
                 />
-                {homeTeam} vs {awayTeam}
+                {homeTeam} v {awayTeam}
                 <Image
                   src={awayTeamLogo || '/assets/defifa_spinner.gif'}
                   alt="Away Team Logo"
