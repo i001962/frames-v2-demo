@@ -136,8 +136,9 @@ export default function Demo({ title = "d33m" }: { title?: string }) {
   // Button to trigger external URL when clicked
   const castSummary = useCallback(() => {
     if (selectedMatch) {
-      const { competitors, homeTeam, awayTeam, homeScore, awayScore, clock, homeLogo, awayLogo } = selectedMatch;
-      const matchSummary = `${competitors}\n${homeTeam.toUpperCase()} ${homeScore} ${awayTeam.toUpperCase()} ${awayScore}\n${clock}\n\nUsing the d33m live match mini-app d33m-frames-v2.vercel.app cc @kmacb.eth Go ${userInfo?.teamName || 'd33m!'}`;
+      const { competitors, homeTeam, awayTeam, homeScore, awayScore, clock, homeLogo, awayLogo, eventStarted } = selectedMatch;
+      const matchSummary = `${competitors}\n${homeTeam.toUpperCase()} ${eventStarted ? homeScore : ''} - ${eventStarted ? awayScore : ''} ${awayTeam.toUpperCase()}\n${eventStarted ? clock : `Kickoff: ${clock}`}\n\nUsing the d33m live match mini-app https://d33m-frames-v2.vercel.app cc @kmacb.eth Go ${userInfo?.teamName || 'd33m!'}`;
+      //const matchSummary = `${competitors}\n${homeTeam.toUpperCase()} ${homeScore} ${awayTeam.toUpperCase()} ${awayScore}\n${clock}\n\nUsing the d33m live match mini-app d33m-frames-v2.vercel.app cc @kmacb.eth Go ${userInfo?.teamName || 'd33m!'}`;
       const encodedSummary = encodeURIComponent(matchSummary);
       const url = `https://warpcast.com/~/compose?text=${encodedSummary}&channelKey=football&embeds[]=${homeLogo}&embeds[]=${awayLogo}`;
 
@@ -295,7 +296,7 @@ export default function Demo({ title = "d33m" }: { title?: string }) {
         {gameContext ? (
           <div className="p-4 bg-purplePanel text-lightPurple rounded-lg">
             <h2 className="font-2xl text-notWhite font-bold">
-            {selectedMatch.eventStarted ? `Match Summary for ${userInfo.username}` : `Match Preview for ${userInfo.username}`}
+            {selectedMatch.eventStarted ? `[AI] Match Summary for ${userInfo.username}` : `[AI] Match Preview for ${userInfo.username}`}
             <button onClick={readMatchSummary}> 🗣️🎧1.5x</button>
             </h2>
             <pre className="text-sm whitespace-pre-wrap break-words">{gameContext}</pre>
