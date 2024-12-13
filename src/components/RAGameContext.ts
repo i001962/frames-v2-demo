@@ -50,8 +50,10 @@ const fillGameContext = async (sixCharacterString: string): Promise<any> => {
 
         if (!summaryData.keyEvents) {
           console.log('No key events found for:', sixCharacterString, 'loading standings instead');
-          await sendOpenAi(`Here are the EPL standings: ${summaryData.standings}`, openAiApiKey);
-          summarizedEvents = summaryData.standings.groups[0].groups.entries;
+          //await sendOpenAi(`Here are the EPL standings: ${summaryData.standings}`, openAiApiKey);
+          //summarizedEvents = summaryData.standings.groups[0].groups.entries;
+          summarizedEvents = [{text: `Provide a match preview for ${sixCharacterString.slice(0, 3)} vs ${sixCharacterString.slice(3, 6)} and name the players injured and odds of wiinning.`}];
+
         } else {
           summarizedEvents = summaryData.keyEvents.map((event: {
             text: any;

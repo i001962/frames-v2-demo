@@ -197,6 +197,7 @@ export default function Demo({ title = "d33m" }: { title?: string }) {
                   homeScore: homeScore,
                   awayScore: awayScore,
                   clock: clock,
+                  eventStarted: eventStarted, // Add eventStarted to the selectedMatch
                 });
                 fetchGameContext(homeTeam, awayTeam);
                 fetchUserData(context?.user?.fid || 0); // Call the user data fetch
@@ -293,8 +294,9 @@ export default function Demo({ title = "d33m" }: { title?: string }) {
       <div className="mt-4 text-lightPurple bg-purplePanel">
         {gameContext ? (
           <div className="p-4 bg-purplePanel text-lightPurple rounded-lg">
-            <h2 className="font-2xl text-notWhite font-bold">Match Summary for {userInfo.username}
-              <button onClick={readMatchSummary}> 🗣️🎧1.5x</button>
+            <h2 className="font-2xl text-notWhite font-bold">
+            {selectedMatch.eventStarted ? `Match Summary for ${userInfo.username}` : `Match Preview for ${userInfo.username}`}
+            <button onClick={readMatchSummary}> 🗣️🎧1.5x</button>
             </h2>
             <pre className="text-sm whitespace-pre-wrap break-words">{gameContext}</pre>
             <div className="mt-4">
@@ -304,7 +306,7 @@ export default function Demo({ title = "d33m" }: { title?: string }) {
         ) : loading ? (
           <div>Loading match context is like waiting for VAR...</div>
         ) : (
-          <div>The match has not started yet.</div>
+          <div></div>
         )}
       </div>
     </div>
