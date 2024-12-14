@@ -15,23 +15,29 @@ const supabase = createClient<Database>(
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRqZnR6cGpxZnFuYnR2b2RzaWdrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjQ1MzA5NDgsImV4cCI6MjA0MDEwNjk0OH0.a6oo59cUi3iQzTpBL0KJ90VXpSel7LDyUlJyPa-FWvs'
 );
 
-export default function Demo({ title = "d33m" }: { title?: string }) {
+export default function Demo() {
   const [isSDKLoaded, setIsSDKLoaded] = useState(false);
   const [context, setContext] = useState<FrameContext | undefined>(undefined);
-  const [isContextOpen, setIsContextOpen] = useState(true);
+  const [selectedTab, setSelectedTab] = useState("matches");  // To manage selected tab
   const [apiResponse, setApiResponse] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedMatch, setSelectedMatch] = useState<any>(null);
+  //const [selectedTab, setSelectedTab] = useState("matches"); // Set the default to "matches"
+
   const [gameContext, setGameContext] = useState<any>(null);
-  const [userInfo, setUserInfo] = useState<any>(null); // New state to store user data
+  const [userInfo, setUserInfo] = useState<any>(null);
+  const [eventsFetched, setEventsFetched] = useState(false); // Track whether events have been fetched
+  const [fantasyData, setFantasyData] = useState<any[]>([]);
+  const [loadingFantasy, setLoadingFantasy] = useState<boolean>(false);
+  const [errorFantasy, setErrorFantasy] = useState<string | null>(null);
 
   const apiUrl = 'https://site.api.espn.com/apis/site/v2/sports/soccer/eng.1/scoreboard'; // ESPN Soccer API endpoint
 
   useEffect(() => {
     const load = async () => {
       const ctx = await sdk.context;
-      setContext(ctx); // Store the context
+      setContext(ctx);
       sdk.actions.ready();
     };
 
@@ -42,65 +48,97 @@ export default function Demo({ title = "d33m" }: { title?: string }) {
   }, [isSDKLoaded]);
 
   useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      setError(null);
+    if (selectedTab === "matches" && !eventsFetched) {
+      const fetchData = async () => {
+        setLoading(true);
+        setError(null);
 
-      try {
-        const response = await fetch(apiUrl);
-        if (!response.ok) {
-          throw new Error("Failed to fetch data");
+        try {
+          const response = await fetch(apiUrl);
+          if (!response.ok) {
+            throw new Error("Failed to fetch data");
+          }
+
+          const data = await response.json();
+          setApiResponse(data);
+          setEventsFetched(true); // Mark as fetched
+        } catch (err) {
+          if (err instanceof Error) {
+            setError(err.message);
+          } else {
+            setError('An unknown error occurred');
+          }
+        } finally {
+          setLoading(false);
         }
+      };
 
-        const data = await response.json();
-        setApiResponse(data);
+      fetchData();
+    }
+  }, [selectedTab]);
+
+  useEffect(() => {
+    const fetchFantasyData = async () => {
+      setLoadingFantasy(true);
+      setErrorFantasy(null);
+      
+      try {
+        // Query the 'standings' table for 'entry_name' and 'rank'
+        const { data, error } = await supabase
+          .from('standings')
+          .select('entry_name, rank');
+
+        if (error) {
+          throw error;
+        }
+        
+        // Set the fetched data
+        setFantasyData(data);
       } catch (err) {
         if (err instanceof Error) {
-          setError(err.message);
+          setErrorFantasy(err.message);
         } else {
-          setError('An unknown error occurred');
+          setErrorFantasy('An unknown error occurred');
         }
       } finally {
-        setLoading(false);
+        setLoadingFantasy(false);
       }
     };
 
-    fetchData();
-  }, []);
+    fetchFantasyData();
+  }, [selectedTab]); // Fetch data when the component mounts
 
   const fetchUserData = async (casterFid: number) => {
     try {
-      // Fetch user data using casterFid
       const { data, error } = await supabase
         .from('standings')
         .select('fname, rank, last_name, total, fav_team')
-        .eq('last_name', String(casterFid)) // Match last_name (casterFid)
+        .eq('last_name', String(casterFid))
         .single();
-  
+
       if (error) {
         throw error;
       }
-  
+
       if (data) {
-        // Check if fav_team is not null before querying the teams table
         if (data.fav_team !== null) {
           const { data: teamsData, error: teamsError } = await supabase
             .from('teams')
             .select('id, name')
             .eq('id', data.fav_team)
             .single();
-  
+
           if (teamsError) {
             throw teamsError;
           }
-  
+
           const userInfo = {
             username: data.fname,
             total: data.total,
             teamName: teamsData?.name || "No team set"
           };
-  
-          setUserInfo(userInfo); // Store the user information
+
+          setUserInfo(userInfo);
         } else {
           console.log("No favorite team set for this user.");
           setUserInfo({ username: data.fname, total: data.total, teamName: "No team set" });
@@ -110,7 +148,6 @@ export default function Demo({ title = "d33m" }: { title?: string }) {
       console.error("Error fetching user data:", err);
     }
   };
-  
 
   const fetchGameContext = (homeTeam: string, awayTeam: string) => {
     setGameContext(null);
@@ -129,41 +166,29 @@ export default function Demo({ title = "d33m" }: { title?: string }) {
       });
   };
 
-  const toggleContext = useCallback(() => {
-    setIsContextOpen((prev) => !prev);
+  const installMiniAp = useCallback(() => {
+      sdk.actions.addFrame();
   }, []);
 
-  // Button to trigger external URL when clicked
+
   const castSummary = useCallback(() => {
     if (selectedMatch) {
       const { competitors, homeTeam, awayTeam, homeScore, awayScore, clock, homeLogo, awayLogo, eventStarted } = selectedMatch;
       const matchSummary = `${competitors}\n${homeTeam.toUpperCase()} ${eventStarted ? homeScore : ''} - ${eventStarted ? awayScore : ''} ${awayTeam.toUpperCase()}\n${eventStarted ? clock : `Kickoff: ${clock}`}\n\nUsing the d33m live match mini-app https://d33m-frames-v2.vercel.app cc @kmacb.eth Go ${userInfo?.teamName || 'd33m!'}`;
-      //const matchSummary = `${competitors}\n${homeTeam.toUpperCase()} ${homeScore} ${awayTeam.toUpperCase()} ${awayScore}\n${clock}\n\nUsing the d33m live match mini-app d33m-frames-v2.vercel.app cc @kmacb.eth Go ${userInfo?.teamName || 'd33m!'}`;
       const encodedSummary = encodeURIComponent(matchSummary);
       const url = `https://warpcast.com/~/compose?text=${encodedSummary}&channelKey=football&embeds[]=${homeLogo}&embeds[]=${awayLogo}`;
 
-      console.log("Opening URL:", url);
       sdk.actions.openUrl(url);
-    } else {
-      console.log("No match selected");
     }
   }, [selectedMatch, userInfo?.teamName]);
 
   const readMatchSummary = useCallback(() => {
     if (selectedMatch) {
-      // const { homeTeam, homeScore, awayTeam, awayScore, clock } = selectedMatch;
-      // const matchSummary = `${homeTeam.toUpperCase()} ${homeScore} - ${awayScore} ${awayTeam.toUpperCase()}, Current time: ${clock}`;
-      console.log("Reading match summary aloud:", gameContext);
       const utterance = new SpeechSynthesisUtterance(gameContext);
       if (utterance && typeof utterance.rate === 'number') {
-        // Set the rate to 1.5x
         utterance.rate = 1.5;
-      } else {
-        console.error("Rate property is not available on the utterance.");
       }
-        window.speechSynthesis.speak(utterance); // Speak the match summary aloud
-    } else {
-      console.log("No match selected");
+      window.speechSynthesis.speak(utterance);
     }
   }, [gameContext, selectedMatch]);
 
@@ -198,11 +223,10 @@ export default function Demo({ title = "d33m" }: { title?: string }) {
                   homeScore: homeScore,
                   awayScore: awayScore,
                   clock: clock,
-                  eventStarted: eventStarted, // Add eventStarted to the selectedMatch
+                  eventStarted: eventStarted,
                 });
                 fetchGameContext(homeTeam, awayTeam);
-                fetchUserData(context?.user?.fid || 0); // Call the user data fetch
-                toggleContext();
+                fetchUserData(context?.user?.fid || 0);
               }}
               className="dropdown-button cursor-pointer flex items-center mb-2 w-full"
             >
@@ -215,7 +239,7 @@ export default function Demo({ title = "d33m" }: { title?: string }) {
                   height={20}
                   style={{ marginRight: '8px' }}
                 />
-                {homeTeam} v {awayTeam}
+                {homeTeam} vs {awayTeam}
                 <Image
                   src={awayTeamLogo || '/assets/defifa_spinner.gif'}
                   alt="Away Team Logo"
@@ -240,7 +264,7 @@ export default function Demo({ title = "d33m" }: { title?: string }) {
   // If ctx is not defined, show the message to go to Purple app
   if (!context) {
     return (
-      <div className="w-[300px] mx-auto py-4 px-2">
+      <div className="w-[375px] mx-auto py-4 px-2">
         <h2 className="text-2xl font-bold text-center text-notWhite">d33m live EPL match summaries mini-app</h2>
         <p className="text-center mt-4 text-fontRed">Open in a Farcaster app</p>
         <a href="https://warpcast.com/kmacb.eth/0xac8d7401" target="_blank" rel="noreferrer" className="block text-center mt-4 text-lightPurple underline">Go to Warpcast</a>
@@ -248,67 +272,145 @@ export default function Demo({ title = "d33m" }: { title?: string }) {
     );
   }
 
-  // If ctx is defined, render the app content
   return (
-    <div className="w-[300px] mx-auto py-4 px-2">
-      <h1 className="text-2xl font-bold text-center text-notWhite mb-4">{title}</h1>
-      <div className="mb-4">
-        <button onClick={toggleContext} className="flex items-center gap-2 transition-colors text-lightPurple">
-          <span className={`transform transition-transform ${isContextOpen ? "rotate-90" : ""}`}>➤</span>
-          {selectedMatch ? (
-            <div className="flex items-center">
-              <Image
-                src={selectedMatch.homeLogo || '/assets/defifa_spinner.gif'}
-                alt="Home Team Logo"
-                className="w-8 h-8"
-                width={20}
-                height={20}
-                style={{ marginRight: '8px' }}
-              />
-              {selectedMatch.homeTeam} {selectedMatch.homeScore} - {selectedMatch.awayScore} {selectedMatch.awayTeam}
-              <Image
-                src={selectedMatch.awayLogo || '/assets/defifa_spinner.gif'}
-                alt="Away Team Logo"
-                className="w-8 h-8"
-                width={20}
-                height={20}
-                style={{ marginLeft: '8px' }}
-              />
+    <div className="w-[400px] mx-auto py-4 px-2">
+      {/* <h1 className="text-2xl font-bold text-center text-notWhite mb-4">{title}</h1> */}
+      {/* Tab Navigation */}
+      <div className="flex overflow-x-auto space-x-4 mb-4">
+        <div
+          onClick={() => setSelectedTab("matches")}
+          className={`flex-shrink-0 py-1 px-6 text-sm font-semibold cursor-pointer rounded-full border-2 ${
+            selectedTab === "matches" ? "border-limeGreenOpacity text-lightPurple" : "border-gray-500 text-gray-700"}`}
+        >
+          Matches
+        </div>
+        <div
+          onClick={() => setSelectedTab("fantasy")}
+          className={`flex-shrink-0 py-1 px-6 text-sm font-semibold cursor-pointer rounded-full border-2 ${
+            selectedTab === "fantasy" ? "border-limeGreenOpacity text-lightPurple" : "border-gray-500 text-gray-700"}`}
+        >
+          Fantasy
+        </div>
+        <div
+          onClick={() => setSelectedTab("banter")}
+          className={`flex-shrink-0 py-1 px-6 text-sm font-semibold cursor-pointer rounded-full border-2 ${
+            selectedTab === "banter" ? "border-limeGreenOpacity text-lightPurple" : "border-gray-500 text-gray-700"}`}
+        >
+          Banter
+        </div>
+        <div
+          onClick={() => setSelectedTab("players")}
+          className={`flex-shrink-0 py-1 px-6 text-sm font-semibold cursor-pointer rounded-full border-2 ${
+            selectedTab === "players" ? "border-limeGreenOpacity text-lightPurple" : "border-gray-500 text-gray-700"}`}
+        >
+          Players
+        </div>
+      </div>
+
+      {/* Tab Content */}
+      <div className="bg-darkPurple p-4 rounded-md text-white">
+        {selectedTab === "matches" && (
+          <div>
+            <h2 className="font-2xl text-notWhite font-bold mb-4">Select</h2>
+             {/*
+             <button
+              onClick={() => setIsEventsOpen(!isEventsOpen)}
+              className="py-2 px-4 mb-4 text-lg bg-deepPink rounded-md text-white"
+            >
+              {isEventsOpen ? "Hide Events" : "Show Events"}
+            </button> */}
+           
+              <div className="p-4 mt-2 bg-purplePanel text-lightPurple rounded-lg">
+                {loading ? (
+                  <div>Loading match context is like waiting for VAR...</div>
+                ) : error ? (
+                  <div className="text-red-500">{error}</div>
+                ) : apiResponse ? (
+                  apiResponse.events.map((event: any) => renderEvent(event))
+                ) : (
+                  <div>No data available.</div>
+                )}
+              </div>
+       
+            <div className="space-y-4">
+              <h3 className="font-semibold text-lg"></h3>
+                          {/* Container for AI Summary and Cast Button */}
+              <div className="mt-4 text-lightPurple bg-purplePanel">
+              {gameContext ? (
+                <div className="p-4 bg-purplePanel text-lightPurple rounded-lg">
+                  <h2 className="font-2xl text-notWhite font-bold mb-4">
+                    <button onClick={readMatchSummary}>{selectedMatch.eventStarted ? `[AI] Match Summary` : `[AI] Match Preview  🗣️🎧1.5x`}</button>
+                  </h2>
+                  <pre className="text-sm whitespace-pre-wrap break-words">{gameContext}</pre>
+                  <div className="mt-4">
+                    <Button onClick={castSummary}>Cast</Button>
+                  </div>
+                  <div className="mt-4">
+                    <Button onClick={installMiniAp}>Install mini-app</Button>
+                  </div>
+                </div>
+              ) : loading ? (
+                <div></div>
+              ) : (
+                <div>
+                  <Button onClick={installMiniAp}>Install mini-app</Button>
+                </div>
+              )}
+              </div> 
             </div>
-          ) : "Select a match"}
-        </button>
-        {isContextOpen && (
-          <div className="p-4 mt-2 bg-purplePanel text-lightPurple rounded-lg">
-            {loading ? (
-              <div>Loading data...</div>
-            ) : error ? (
-              <div className="text-red-500">{error}</div>
-            ) : apiResponse ? (
-              apiResponse.events.map((event: any) => renderEvent(event))
+          </div>
+        )}
+
+        {selectedTab === "fantasy" && (
+          <div>
+            <h2 className="font-2xl text-notWhite font-bold mb-4">Table</h2>
+            {loadingFantasy ? (
+              <div>Loading fantasy stats...</div>
+            ) : errorFantasy ? (
+              <div className="text-red-500">{errorFantasy}</div>
+            ) : fantasyData.length > 0 ? (
+              <div className="bg-purplePanel p-4 rounded-md">
+                <table className="w-full">
+                  <thead>
+                    <tr>
+                      <th className="text-notWhite text-left">Entry Name</th>
+                      <th className="text-notWhite text-left">Rank</th>
+                    </tr>
+                  </thead>
+                  <tbody className="text-lightPurple text-sm">
+                    {fantasyData.map((entry, index) => (
+                      <tr key={index}>
+                        <td>{entry.entry_name}</td>
+                        <td>{entry.rank}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             ) : (
-              <div>No data available.</div>
+              <div>No fantasy data available.</div>
             )}
           </div>
         )}
-      </div>
 
-      <div className="mt-4 text-lightPurple bg-purplePanel">
-        {gameContext ? (
-          <div className="p-4 bg-purplePanel text-lightPurple rounded-lg">
-            <h2 className="font-2xl text-notWhite font-bold">
-            {selectedMatch.eventStarted ? `[AI] Match Summary for ${userInfo.username}` : `[AI] Match Preview for ${userInfo.username}`}
-            <button onClick={readMatchSummary}> 🗣️🎧1.5x</button>
-            </h2>
-            <pre className="text-sm whitespace-pre-wrap break-words">{gameContext}</pre>
-            <div className="mt-4">
-              <Button onClick={castSummary}>Cast</Button>
+        {selectedTab === "banter" && (
+          <div>
+            <h2 className="font-2xl text-notWhite font-bold mb-4">Bot</h2>
+            <div className="bg-purplePanel p-4 rounded-md text-lightPurple">
+              <p className="text-sm">Soon<sup className="text-sm">™</sup></p>
             </div>
           </div>
-        ) : loading ? (
-          <div>Loading match context is like waiting for VAR...</div>
-        ) : (
-          <div></div>
         )}
+
+        {selectedTab === "players" && (
+          <div>
+            <h2 className="font-2xl text-notWhite font-bold mb-4">Collect</h2>
+            <div className="bg-purplePanel p-4 rounded-md text-lightPurple">
+              <p className="text-sm">Soon<sup className="text-sm">™</sup></p>
+            </div>
+          </div>
+        )}
+
       </div>
     </div>
   );
