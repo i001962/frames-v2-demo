@@ -7,10 +7,10 @@ const frame = {
   version: "next",
   imageUrl: `${appUrl}/opengraph-image`,
   button: {
-    title: "Live match summaries",
+    title: "Farcaster Footy App",
     action: {
       type: "launch_frame",
-      name: "EPL Match Summaries",
+      name: "Farcaster Footy App",
       url: appUrl,
       splashImageUrl: `${appUrl}/defifa_spinner.gif`,
       splashBackgroundColor: "#BD195D",
@@ -22,10 +22,10 @@ export const revalidate = 300;
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
-    title: "EPL Live Match Summaries",
+    title: "Farcaster Footy App",
     openGraph: {
-      title: "EPL Live Match Summaries",
-      description: "Get the live match summaries from the English Premier League",
+      title: "Farcaster Footy App",
+      description: "Farcaster Footy App: Live Match Summaries, Fantasy League, Banter bot, Collectables & Contests",
     },
     other: {
       "fc:frame": JSON.stringify(frame),
