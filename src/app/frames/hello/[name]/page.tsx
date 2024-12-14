@@ -42,6 +42,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function HelloNameFrame({ params }: Props) {
   const { name } = await params;
+  console.log("HelloNameFrame", name); // TODO: Remove this shit
 
-  return <App title={`Hello, ${name}`} />;
+  return <App />;
 }
