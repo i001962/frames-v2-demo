@@ -92,7 +92,6 @@ export default function Demo() {
         if (error) {
           throw error;
         }
-
         // Step 1: Concurrently fetch profile images for each entry with valid fid
         const updatedFantasyData = await Promise.all(
           data.map(async (entry) => {
@@ -132,7 +131,7 @@ export default function Demo() {
                     const { data: teamData, error: teamError } = await supabase
                       .from('teams')
                       .select('name, logo')
-                      .eq('code', fav_team)
+                      .eq('id', fav_team)
                       .single(); // Assume fav_team maps to one team only
 
                     if (teamError) {
