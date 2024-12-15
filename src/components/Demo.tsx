@@ -247,7 +247,7 @@ export default function Demo() {
   const castSummary = useCallback(() => {
     if (selectedMatch) {
       const { competitors, homeTeam, awayTeam, homeScore, awayScore, clock, homeLogo, awayLogo, eventStarted } = selectedMatch;
-      const matchSummary = `${competitors}\n${homeTeam.toUpperCase()} ${eventStarted ? homeScore : ''} - ${eventStarted ? awayScore : ''} ${awayTeam.toUpperCase()}\n${eventStarted ? clock : `Kickoff: ${clock}`}\n\nUsing the d33m live match mini-app https://d33m-frames-v2.vercel.app cc @kmacb.eth Go ${userInfo?.teamName || 'd33m!'}`;
+      const matchSummary = `${competitors}\n${homeTeam.toUpperCase()} ${eventStarted ? homeScore : ''} - ${eventStarted ? awayScore : ''} ${awayTeam.toUpperCase()}\n${eventStarted ? `${clock}` : `Kickoff: ${clock}`}\n\nUsing the d33m live match mini-app https://d33m-frames-v2.vercel.app cc @kmacb.eth Go ${userInfo?.teamName || 'd33m!'}`;
       const encodedSummary = encodeURIComponent(matchSummary);
       const url = `https://warpcast.com/~/compose?text=${encodedSummary}&channelKey=football&embeds[]=${homeLogo}&embeds[]=${awayLogo}`;
 
@@ -384,7 +384,7 @@ export default function Demo() {
       <div className="bg-darkPurple p-4 rounded-md text-white">
         {selectedTab === "matches" && (
           <div>
-            <h2 className="font-2xl text-notWhite font-bold mb-4">Select</h2>
+            <h2 className="font-2xl text-notWhite font-bold mb-4">Select for AI Summary</h2>
              {/*
              <button
               onClick={() => setIsEventsOpen(!isEventsOpen)}
