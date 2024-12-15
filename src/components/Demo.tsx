@@ -8,6 +8,7 @@ import RAGameContext from "./RAGameContext";
 import { Button } from "~/components/ui/Button";
 import { createClient } from "@supabase/supabase-js";
 import { Database } from '../../supabase';
+import axios from "axios";
 
 // Define the Supabase client
 const supabase = createClient<Database>(
@@ -83,30 +84,83 @@ export default function Demo() {
       setErrorFantasy(null);
       
       try {
-        // Query the 'standings' table for 'entry_name' and 'rank'
+        // Query the 'standings' table for 'entry_name', 'rank', and 'last_name'
         const { data, error } = await supabase
           .from('standings')
-          .select('entry_name, rank');
+          .select('entry_name, rank, last_name, fav_team');
 
         if (error) {
           throw error;
         }
-        
-        // Set the fetched data
-        setFantasyData(data);
-      } catch (err) {
-        if (err instanceof Error) {
-          setErrorFantasy(err.message);
-        } else {
-          setErrorFantasy('An unknown error occurred');
-        }
-      } finally {
-        setLoadingFantasy(false);
-      }
-    };
 
-    fetchFantasyData();
-  }, [selectedTab]); // Fetch data when the component mounts
+        // Create an array to store the updated fantasy data with pfp
+        const updatedFantasyData = [];
+
+        // Loop through the fetched data
+        for (const entry of data) {
+          const { last_name } = entry;
+
+          // Ensure last_name is not null and is a valid number (fid)
+          if (last_name && !isNaN(Number(last_name))) {
+            const fid = parseInt(last_name, 10); // Ensure fid is an integer
+
+            // Check if fid is a valid integer
+            if (Number.isInteger(fid)) {
+              const server = "https://hubs.airstack.xyz";
+
+              try {
+                // Make the API call using the fid
+                const response = await axios.get(`${server}/v1/userDataByFid?fid=${fid}`,{
+                  headers: {
+                    "Content-Type": "application/json",
+                    "x-airstack-hubs": "18c933b177db0481294b63138fe69648d"
+                    //process.env.AIRSTACK_API_KEY as string,
+                  },
+                });
+              // Extract pfp URL from the response
+              let pfpUrl = null;
+              const messages = response.data.messages || [];
+
+              for (const message of messages) {
+                if (message.data?.userDataBody?.type === 'USER_DATA_TYPE_PFP') {
+                  pfpUrl = message.data.userDataBody.value;
+                  break;
+                }
+              }
+
+              // Push updated entry with pfpUrl
+              updatedFantasyData.push({
+                ...entry,  // Spread the existing entry data
+                pfp: pfpUrl, // Add the pfp URL to the entry
+              });
+
+            } catch (e) {
+              console.error("Error fetching data from API", e);
+              // In case of error, just push the entry without pfp
+              updatedFantasyData.push(entry);
+            }
+          } else {
+            // If last_name is not a number or null, add the entry without pfp
+            updatedFantasyData.push(entry);
+          }
+          }
+          
+          // Set the updated fantasy data with pfp
+          setFantasyData(updatedFantasyData);
+        }
+    }
+    catch (err) {
+      if (err instanceof Error) {
+        setErrorFantasy(err.message);
+      } else {
+        setErrorFantasy('An unknown error occurred');
+      }
+    } finally {
+      setLoadingFantasy(false);
+    }
+  };
+  fetchFantasyData();
+  }, []); // Fetch data when the component mounts
 
   const fetchUserData = async (casterFid: number) => {
     try {
@@ -365,7 +419,12 @@ export default function Demo() {
           <div>
             <h2 className="font-2xl text-notWhite font-bold mb-4">Table</h2>
             {loadingFantasy ? (
-              <div>Loading fantasy stats...</div>
+              <div className="text-lightPurple">
+                <div>Loading fantasy stats...</div>
+                <div>
+                  The longest VAR check in Premier League history was five minutes and 37 seconds long and took place during a March 2024 match between West Ham and Aston Villa
+                </div>
+              </div>
             ) : errorFantasy ? (
               <div className="text-red-500">{errorFantasy}</div>
             ) : fantasyData.length > 0 ? (
@@ -373,13 +432,23 @@ export default function Demo() {
                 <table className="w-full">
                   <thead>
                     <tr>
-                      <th className="text-notWhite text-left">Entry Name</th>
+                      <th className="text-notWhite text-left">Manager</th>
+                      <th className="text-notWhite text-left">Team</th>
                       <th className="text-notWhite text-left">Rank</th>
                     </tr>
                   </thead>
                   <tbody className="text-lightPurple text-sm">
                     {fantasyData.map((entry, index) => (
                       <tr key={index}>
+                        <td>
+                          <Image
+                            src={entry.pfp || '/defifa_spinner.gif'}
+                            alt="Home Team Logo"
+                            className="rounded-full w-8 h-8 mr-2"
+                            width={20}
+                            height={20}
+                          />
+                        </td>
                         <td>{entry.entry_name}</td>
                         <td>{entry.rank}</td>
                       </tr>
