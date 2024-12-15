@@ -10,10 +10,13 @@ import { createClient } from "@supabase/supabase-js";
 import { Database } from '../../supabase';
 import axios from "axios";
 
+const openAiApiKey = process.env.NEXT_PUBLIC_API_AIRSTACK || ''; // TODO: public isn't right here but yolo 
+const supabaseApiKey = process.env.NEXT_PUBLIC_API_SUP || '';    // TODO: public isn't right here but yolo 
+
 // Define the Supabase client
 const supabase = createClient<Database>(
   'https://tjftzpjqfqnbtvodsigk.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRqZnR6cGpxZnFuYnR2b2RzaWdrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjQ1MzA5NDgsImV4cCI6MjA0MDEwNjk0OH0.a6oo59cUi3iQzTpBL0KJ90VXpSel7LDyUlJyPa-FWvs'
+  supabaseApiKey
 );
 
 export default function Demo() {
@@ -100,31 +103,33 @@ export default function Demo() {
             // Ensure last_name is not null and is a valid number (fid)
             if (last_name && !isNaN(Number(last_name))) {
               const fid = parseInt(last_name, 10); // Ensure fid is an integer
-
               // Check if fid is a valid integer
               if (Number.isInteger(fid)) {
                 const server = "https://hubs.airstack.xyz";
-
                 try {
                   // Make the API call using the fid
                   const response = await axios.get(`${server}/v1/userDataByFid?fid=${fid}`, {
                     headers: {
                       "Content-Type": "application/json",
-                      "x-airstack-hubs": "18c933b177db0481294b63138fe69648d"
+                      "x-airstack-hubs": openAiApiKey
                     }
                   });
 
                   // Extract pfp URL from the response
                   let pfpUrl = null;
+                  let username = null;
                   const messages = response.data.messages || [];
-
                   for (const message of messages) {
                     if (message.data?.userDataBody?.type === 'USER_DATA_TYPE_PFP') {
                       pfpUrl = message.data.userDataBody.value;
-                      break;
+                      //break;
+                    }
+                    // Check if the message is for username
+                    if (message.data?.userDataBody?.type === 'USER_DATA_TYPE_USERNAME') {
+                      username = message.data.userDataBody.value;
                     }
                   }
-
+                  
                   // Step 2: Fetch team info from the 'teams' table based on fav_team
                   let teamInfo = null;
                   if (fav_team) {
@@ -150,7 +155,8 @@ export default function Demo() {
                   return {
                     ...entry, // Spread the existing entry data
                     pfp: pfpUrl || '/defifa_spinner.gif', // Use a fallback pfp if not found
-                    team: teamInfo // Add team info (either fetched or default)
+                    team: teamInfo, // Add team info (either fetched or default)
+                    manager: username || 'anon', // Add username (manager) to the entry
                   };
                 } catch (e) {
                   console.error("Error fetching data from API", e);
@@ -160,7 +166,7 @@ export default function Demo() {
             }
 
             // Return the entry as-is if no valid fid or last_name
-            return { ...entry, pfp: '/defifa_spinner.gif', team: { name: 'N/A', logo: '/defifa_spinner.gif' } };
+            return { ...entry, pfp: '/defifa_spinner.gif', team: { name: 'N/A', logo: '/defifa_spinner.gif' }, manager: 'FID not set 🤦🏽‍♂️' };
           })
         );
 
@@ -180,7 +186,7 @@ export default function Demo() {
     fetchFantasyData();
   }, []); // Fetch data when the component mounts
 
-  const fetchUserData = async (casterFid: number) => {
+  const fetchUserData = async (casterFid: number) => { //TODO refactor this used for casting
     try {
       const { data, error } = await supabase
         .from('standings')
@@ -212,7 +218,6 @@ export default function Demo() {
 
           setUserInfo(userInfo);
         } else {
-          console.log("No favorite team set for this user.");
           setUserInfo({ username: data.fname, total: data.total, teamName: "No team set" });
         }
       }
@@ -450,15 +455,15 @@ export default function Demo() {
                 <table className="w-full">
                   <thead>
                     <tr>
-                      <th className="text-notWhite text-left px-4">Manager</th> {/* Add padding to create space */}
-                      <th className="text-notWhite text-left px-4">Team</th>   {/* Add padding to create space */}
-                      <th className="text-notWhite text-left px-4">Rank</th>   {/* Add padding to create space */}
+                      <th className="text-notWhite text-left px-4">Fav Club</th>
+                      <th className="text-notWhite text-left px-4">Manager</th>
+                      <th className="text-notWhite text-left px-4">Rank</th>
                     </tr>
                   </thead>
                   <tbody className="text-lightPurple text-sm">
                     {fantasyData.map((entry, index) => (
                       <tr key={index}>
-                        <td className="relative flex items-center space-x-3 px-4"> {/* Flexbox layout for images */}
+                        <td className="relative flex items-center space-x-3 px-4">
                           <Image
                             src={entry.pfp || '/defifa_spinner.gif'}
                             alt="Home Team Logo"
@@ -468,16 +473,16 @@ export default function Demo() {
                           />
                           {entry.team.logo && entry.team.logo !== '/defifa_spinner.gif' && (
                             <Image
-                            src={entry.team.logo} // Team logo URL
+                            src={entry.team.logo} 
                             alt="Team Logo"
-                            className="rounded-full w-5 h-5 absolute top-0 left-10" // Absolute positioning for overlap
+                            className="rounded-full w-5 h-5 absolute top-0 left-10"
                             width={15}
                             height={15}
-                            loading="lazy" // Lazy loading the image
+                            loading="lazy" 
                           />
                           )}
                         </td>
-                        <td>{entry.entry_name}</td>
+                        <td>{entry.manager}</td>
                         <td className="text-center">{entry.rank}</td>
                       </tr>
                     ))}
