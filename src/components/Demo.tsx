@@ -82,9 +82,9 @@ export default function Demo() {
     const fetchFantasyData = async () => {
       setLoadingFantasy(true);
       setErrorFantasy(null);
-      
+
       try {
-        // Query the 'standings' table for 'entry_name', 'rank', and 'last_name'
+        // Query the 'standings' table for 'entry_name', 'rank', 'last_name', and 'fav_team'
         const { data, error } = await supabase
           .from('standings')
           .select('entry_name, rank, last_name, fav_team');
@@ -93,73 +93,92 @@ export default function Demo() {
           throw error;
         }
 
-        // Create an array to store the updated fantasy data with pfp
-        const updatedFantasyData = [];
+        // Step 1: Concurrently fetch profile images for each entry with valid fid
+        const updatedFantasyData = await Promise.all(
+          data.map(async (entry) => {
+            const { last_name, fav_team } = entry;
 
-        // Loop through the fetched data
-        for (const entry of data) {
-          const { last_name } = entry;
+            // Ensure last_name is not null and is a valid number (fid)
+            if (last_name && !isNaN(Number(last_name))) {
+              const fid = parseInt(last_name, 10); // Ensure fid is an integer
 
-          // Ensure last_name is not null and is a valid number (fid)
-          if (last_name && !isNaN(Number(last_name))) {
-            const fid = parseInt(last_name, 10); // Ensure fid is an integer
+              // Check if fid is a valid integer
+              if (Number.isInteger(fid)) {
+                const server = "https://hubs.airstack.xyz";
 
-            // Check if fid is a valid integer
-            if (Number.isInteger(fid)) {
-              const server = "https://hubs.airstack.xyz";
+                try {
+                  // Make the API call using the fid
+                  const response = await axios.get(`${server}/v1/userDataByFid?fid=${fid}`, {
+                    headers: {
+                      "Content-Type": "application/json",
+                      "x-airstack-hubs": "18c933b177db0481294b63138fe69648d"
+                    }
+                  });
 
-              try {
-                // Make the API call using the fid
-                const response = await axios.get(`${server}/v1/userDataByFid?fid=${fid}`,{
-                  headers: {
-                    "Content-Type": "application/json",
-                    "x-airstack-hubs": "18c933b177db0481294b63138fe69648d"
-                    //process.env.AIRSTACK_API_KEY as string,
-                  },
-                });
-              // Extract pfp URL from the response
-              let pfpUrl = null;
-              const messages = response.data.messages || [];
+                  // Extract pfp URL from the response
+                  let pfpUrl = null;
+                  const messages = response.data.messages || [];
 
-              for (const message of messages) {
-                if (message.data?.userDataBody?.type === 'USER_DATA_TYPE_PFP') {
-                  pfpUrl = message.data.userDataBody.value;
-                  break;
+                  for (const message of messages) {
+                    if (message.data?.userDataBody?.type === 'USER_DATA_TYPE_PFP') {
+                      pfpUrl = message.data.userDataBody.value;
+                      break;
+                    }
+                  }
+
+                  // Step 2: Fetch team info from the 'teams' table based on fav_team
+                  let teamInfo = null;
+                  if (fav_team) {
+                    const { data: teamData, error: teamError } = await supabase
+                      .from('teams')
+                      .select('name, logo')
+                      .eq('code', fav_team)
+                      .single(); // Assume fav_team maps to one team only
+
+                    if (teamError) {
+                      console.error("Error fetching team data", teamError);
+                    } else {
+                      teamInfo = teamData;
+                    }
+                  }
+
+                  // If no team info, use a default team logo (defifa_spinner.gif)
+                  if (!teamInfo) {
+                    teamInfo = { name: 'N/A', logo: '/defifa_spinner.gif' };
+                  }
+
+                  // Return updated entry with pfpUrl and teamInfo
+                  return {
+                    ...entry, // Spread the existing entry data
+                    pfp: pfpUrl || '/defifa_spinner.gif', // Use a fallback pfp if not found
+                    team: teamInfo // Add team info (either fetched or default)
+                  };
+                } catch (e) {
+                  console.error("Error fetching data from API", e);
+                  return { ...entry, pfp: '/defifa_spinner.gif' }; // Fallback on error
                 }
               }
-
-              // Push updated entry with pfpUrl
-              updatedFantasyData.push({
-                ...entry,  // Spread the existing entry data
-                pfp: pfpUrl, // Add the pfp URL to the entry
-              });
-
-            } catch (e) {
-              console.error("Error fetching data from API", e);
-              // In case of error, just push the entry without pfp
-              updatedFantasyData.push(entry);
             }
-          } else {
-            // If last_name is not a number or null, add the entry without pfp
-            updatedFantasyData.push(entry);
-          }
-          }
-          
-          // Set the updated fantasy data with pfp
-          setFantasyData(updatedFantasyData);
+
+            // Return the entry as-is if no valid fid or last_name
+            return { ...entry, pfp: '/defifa_spinner.gif', team: { name: 'N/A', logo: '/defifa_spinner.gif' } };
+          })
+        );
+
+        // Step 3: Set the updated fantasy data with pfp and team info
+        setFantasyData(updatedFantasyData);
+      } catch (err) {
+        if (err instanceof Error) {
+          setErrorFantasy(err.message);
+        } else {
+          setErrorFantasy('An unknown error occurred');
         }
-    }
-    catch (err) {
-      if (err instanceof Error) {
-        setErrorFantasy(err.message);
-      } else {
-        setErrorFantasy('An unknown error occurred');
+      } finally {
+        setLoadingFantasy(false);
       }
-    } finally {
-      setLoadingFantasy(false);
-    }
-  };
-  fetchFantasyData();
+    };
+
+    fetchFantasyData();
   }, []); // Fetch data when the component mounts
 
   const fetchUserData = async (casterFid: number) => {
@@ -440,14 +459,24 @@ export default function Demo() {
                   <tbody className="text-lightPurple text-sm">
                     {fantasyData.map((entry, index) => (
                       <tr key={index}>
-                        <td>
+                        <td className="relative w-8 h-8 px-4"> {/* Add horizontal padding here */}
                           <Image
                             src={entry.pfp || '/defifa_spinner.gif'}
                             alt="Home Team Logo"
-                            className="rounded-full w-8 h-8 mr-2"
+                            className="rounded-full w-8 h-8 mr-8"
                             width={20}
                             height={20}
                           />
+                            {entry.team.logo && entry.team.logo !== '/defifa_spinner.gif' && (
+                          <Image
+                          src={entry.team.logo} // Team logo URL
+                          alt="Team Logo"
+                          className="rounded-full w-5 h-5 absolute top-0 left-12" // Absolute positioning for overlap
+                          width={15}
+                          height={15}
+                          loading="lazy" // Lazy loading the image
+                        />
+                          )}
                         </td>
                         <td>{entry.entry_name}</td>
                         <td>{entry.rank}</td>
