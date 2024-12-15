@@ -11,7 +11,7 @@ export async function GET() {
     },
     frame: {
       version: "0.0.1",
-      name: "FC Footy App",
+      name: "FC Footy",
       iconUrl: `${appUrl}/512.png`,
       splashImageUrl: `${appUrl}/defifa_spinner.gif`,
       splashBackgroundColor: "#BD195D",
