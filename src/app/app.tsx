@@ -7,7 +7,7 @@ const Demo = dynamic(() => import("~/components/Demo"), {
 });
 
 export default function App(
-  { title }: { title?: string } = { title: "FC Footy App" }
+  { title }: { title?: string } = { title: "FC Footy" }
 ) {
   console.log(title); // TODO remove this shit
   return <Demo />;
