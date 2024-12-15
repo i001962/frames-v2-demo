@@ -451,15 +451,15 @@ export default function Demo() {
                 <table className="w-full">
                   <thead>
                     <tr>
-                      <th className="text-notWhite text-left">Manager</th>
-                      <th className="text-notWhite text-left">Team</th>
-                      <th className="text-notWhite text-left">Rank</th>
+                      <th className="text-notWhite text-left px-4">Manager</th> {/* Add padding to create space */}
+                      <th className="text-notWhite text-left px-4">Team</th>   {/* Add padding to create space */}
+                      <th className="text-notWhite text-left px-4">Rank</th>   {/* Add padding to create space */}
                     </tr>
                   </thead>
                   <tbody className="text-lightPurple text-sm">
                     {fantasyData.map((entry, index) => (
                       <tr key={index}>
-                        <td className="relative w-8 h-8 px-4"> {/* Add horizontal padding here */}
+                        <td className="relative flex items-center space-x-3 px-4"> {/* Flexbox layout for images */}
                           <Image
                             src={entry.pfp || '/defifa_spinner.gif'}
                             alt="Home Team Logo"
@@ -467,19 +467,19 @@ export default function Demo() {
                             width={20}
                             height={20}
                           />
-                            {entry.team.logo && entry.team.logo !== '/defifa_spinner.gif' && (
-                          <Image
-                          src={entry.team.logo} // Team logo URL
-                          alt="Team Logo"
-                          className="rounded-full w-5 h-5 absolute top-0 left-12" // Absolute positioning for overlap
-                          width={15}
-                          height={15}
-                          loading="lazy" // Lazy loading the image
-                        />
+                          {entry.team.logo && entry.team.logo !== '/defifa_spinner.gif' && (
+                            <Image
+                            src={entry.team.logo} // Team logo URL
+                            alt="Team Logo"
+                            className="rounded-full w-5 h-5 absolute top-0 left-10" // Absolute positioning for overlap
+                            width={15}
+                            height={15}
+                            loading="lazy" // Lazy loading the image
+                          />
                           )}
                         </td>
                         <td>{entry.entry_name}</td>
-                        <td>{entry.rank}</td>
+                        <td className="text-center">{entry.rank}</td>
                       </tr>
                     ))}
                   </tbody>
