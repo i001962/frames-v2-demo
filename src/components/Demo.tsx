@@ -27,7 +27,6 @@ export default function Demo() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [errorTFN, setErrorTFN] = useState<string | null>(null);
-
   const [selectedMatch, setSelectedMatch] = useState<any>(null);
   const [gameContext, setGameContext] = useState<any>(null);
   const [eventsFetched, setEventsFetched] = useState(false); 
@@ -38,7 +37,10 @@ export default function Demo() {
   const [selectedFantasyRow, setSelectedFantasyRow] = useState<any>(null);  
   const [falseNineContent, setFalseNineContent] = useState<{ title: string, content: string, link: string, author: string, image: string, pubDate: string }[]>([]);
   const [loadingTFN, setLoadingTFN] = useState(false);
-
+  const [pauseAt, setPauseAt] = useState(0); // Track the position when paused
+  const [isReading, setIsReading] = useState(false); // Track if speech is reading
+  const [speechInstance, setSpeechInstance] = useState<SpeechSynthesisUtterance | null>(null); // Store the current speech instance
+  
   const apiUrl = 'https://site.api.espn.com/apis/site/v2/sports/soccer/eng.1/scoreboard'; // ESPN Soccer API endpoint
 
   useEffect(() => {
@@ -298,9 +300,9 @@ export default function Demo() {
       });
   };
 
-  const installMiniAp = useCallback(() => {
+/*   const installMiniAp = useCallback(() => {
       sdk.actions.addFrame();
-  }, []);
+  }, []); */
 
   const castSummary = useCallback(() => {
     if (selectedMatch) {
@@ -352,6 +354,60 @@ export default function Demo() {
     }
   }, [gameContext, selectedMatch]);
 
+  const readTFN = useCallback(() => {
+    // Check if speech is already in progress, if so, pause it
+    if (isReading) {
+      window.speechSynthesis.pause(); // Pause the speech if it's already playing
+      setIsReading(false); // Mark as paused
+      return;
+    }
+  
+    // Create a temporary DOM element to parse the HTML content
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(falseNineContent[0].content, 'text/html');
+    
+    // Extract the plain text content without HTML tags
+    const plainText = doc.body.textContent || "";
+  
+    const utterance = new SpeechSynthesisUtterance(plainText);
+    utterance.rate = 1.5;
+  
+    // If it's a resume after a pause, resume from where it left off
+    if (pauseAt > 0) {
+      const resumedText = plainText.slice(pauseAt); // Slice the string to start from the last paused position
+      utterance.text = resumedText;
+      setPauseAt(0); // Reset pause position
+    }
+  
+    // Store the speech instance in state
+    setSpeechInstance(utterance);
+  
+    // Set the speech to start
+    window.speechSynthesis.speak(utterance);
+    setIsReading(true); // Mark as reading
+  
+    // Handle when speech is completed
+    utterance.onend = () => {
+      setIsReading(false); // Reset reading state when the speech is finished
+    };
+  
+    // Track where speech is paused
+    utterance.onboundary = (event) => {
+      if (event.name === 'word') {
+        setPauseAt(event.charIndex); // Track the position of the speech
+      }
+    };
+  
+  }, [falseNineContent, isReading, pauseAt]); // Re-run when `falseNineContent`, `isReading`, or `pauseAt` changes
+  
+  // Stop function to stop the speech entirely
+  const stopReading = useCallback(() => {
+    if (speechInstance) {
+      window.speechSynthesis.cancel(); // Stops the speech
+      setIsReading(false); // Mark that it's not being read anymore
+    }
+  }, [speechInstance]);
+  
   const renderEvent = (event: any) => {
     const homeTeam = event.shortName.split('@')[1].trim().toLowerCase();
     const awayTeam = event.shortName.split('@')[0].trim().toLowerCase();
@@ -604,16 +660,16 @@ export default function Demo() {
                     <div className="mt-4">
                       <Button onClick={castSummary}>Cast</Button>
                     </div>
-                    <div className="mt-4">
+{/*                     <div className="mt-4">
                       <Button onClick={installMiniAp}>Install mini-app</Button>
-                    </div>
+                    </div> */}
                   </div>
                 ) : loading ? (
                   <div></div>
                 ) : (
                   <div>
-                    <Button onClick={installMiniAp}>Install mini-app</Button>
-                  </div>
+{/*                     <Button onClick={installMiniAp}>Install mini-app</Button>
+ */}                  </div>
                 )}
               </div>
             </div>
@@ -705,7 +761,7 @@ export default function Demo() {
           <div>
             {falseNineContent.length > 0 ? (
               <div key={0} className="mb-4">
-                <h3 className="font-bold text-xl">{falseNineContent[0].title}</h3>
+                <h3 className="font-bold text-notWhite text-xl">{falseNineContent[0].title}</h3>
                 <p className="text-sm text-gray-500">{falseNineContent[0].pubDate}</p>
                 <p className="text-sm text-gray-500">Author: {falseNineContent[0].author}</p> {/* Display author */}
                 {falseNineContent[0].image && (
@@ -721,16 +777,26 @@ export default function Demo() {
                 <a
                   href={`${falseNineContent[0].link}?referrer=0x8b80755C441d355405CA7571443Bb9247B77Ec16`}
                   target="_blank"
-                  rel="noopener noreferrer"
+                  rel="noopener noreferrer allow-popups"
                   className="text-fontRed hover:underline"
                 >
                   Subscribe to The False Nine
                 </a>
                 <button 
-                  className='text-notWhite ml-2' 
-                  onClick={readMatchSummary}>
-                  🗣️🎧1.5x
+                  className="text-notWhite ml-2" 
+                  onClick={readTFN}
+                >
+                  {isReading ? "⏸️ Pause" : "🗣️🎧1.5x"} 
                 </button>
+
+                {isReading && (
+                  <button 
+                    className="text-notWhite ml-2"
+                    onClick={stopReading}
+                  >
+                    🛑 Stop
+                  </button>
+                )}
                 <div
                   className="text-lightPurple bg-purplePanel mt-2 space-y-2"
                   dangerouslySetInnerHTML={{
