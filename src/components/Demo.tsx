@@ -26,14 +26,18 @@ export default function Demo() {
   const [apiResponse, setApiResponse] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [errorTFN, setErrorTFN] = useState<string | null>(null);
+
   const [selectedMatch, setSelectedMatch] = useState<any>(null);
   const [gameContext, setGameContext] = useState<any>(null);
-  const [eventsFetched, setEventsFetched] = useState(false); // Track whether events have been fetched
+  const [eventsFetched, setEventsFetched] = useState(false); 
   const [fantasyData, setFantasyData] = useState<any[]>([]);
   const [loadingFantasy, setLoadingFantasy] = useState<boolean>(false);
   const [errorFantasy, setErrorFantasy] = useState<string | null>(null);
   const [userInfo, setUserInfo] = useState<any>(null);
-  const [selectedFantasyRow, setSelectedFantasyRow] = useState<any>(null);  // Track the selected row
+  const [selectedFantasyRow, setSelectedFantasyRow] = useState<any>(null);  
+  const [falseNineContent, setFalseNineContent] = useState<{ title: string, content: string, link: string, author: string, image: string, pubDate: string }[]>([]);
+  const [loadingTFN, setLoadingTFN] = useState(false);
 
   const apiUrl = 'https://site.api.espn.com/apis/site/v2/sports/soccer/eng.1/scoreboard'; // ESPN Soccer API endpoint
 
@@ -77,6 +81,9 @@ export default function Demo() {
       };
 
       fetchData();
+    }
+    if (selectedTab === "falseNine") {
+      fetchFalseNineContent();
     }
   }, [selectedTab]);
 
@@ -224,7 +231,56 @@ export default function Demo() {
       console.error("Error fetching user data:", err);
     }
   };
-
+  
+  const fetchFalseNineContent = async () => {
+    setErrorTFN(null);
+    try {
+      setLoadingTFN(true);
+      const response = await axios.get('https://api.paragraph.xyz/blogs/rss/@thefalsenine');
+  
+      // Parse the RSS content using DOMParser
+      const parser = new DOMParser();
+      const xmlDoc = parser.parseFromString(response.data, 'text/xml');
+  
+      // Check if there are any items in the RSS feed
+      const items = xmlDoc.getElementsByTagName('item');
+      if (items.length === 0) {
+        setErrorTFN("No items found in the RSS feed.");
+        return;
+      }
+  
+      // Extract the title, link, pubDate, and content:encoded from each item
+      const content = Array.from(items).map(item => {
+        const title = item.getElementsByTagName('title')[0]?.textContent || '';
+        const link = item.getElementsByTagName('link')[0]?.textContent || '';
+        const pubDate = item.getElementsByTagName('pubDate')[0]?.textContent || '';
+        const contentEncoded = item.getElementsByTagName('content:encoded')[0]?.textContent || '';
+        const author = item.getElementsByTagName('author')[0]?.textContent || '';
+        const imageUrl = item.getElementsByTagName('enclosure')[0]?.getAttribute('url') || ''; // Get image URL from enclosure
+        return {
+          title,
+          link,
+          pubDate,
+          content: contentEncoded,
+          author,
+          image: imageUrl
+        };
+      });
+  
+      // If no content is found, show a message
+      if (content.length === 0 || content.every(c => !c.content.trim())) {
+        setErrorTFN("No content available.");
+      } else {
+        setFalseNineContent(content); // Set the fetched and formatted content
+      }
+    } catch (err) {
+      setErrorTFN("Failed to load content.");
+      console.error('Error fetching or parsing RSS:', err);
+    } finally {
+      setLoadingTFN(false);
+    }
+  };
+  
   const fetchGameContext = (homeTeam: string, awayTeam: string) => {
     setGameContext(null);
     setLoading(true);
@@ -492,6 +548,13 @@ export default function Demo() {
           Fantasy
         </div>
         <div
+          onClick={() => setSelectedTab("falseNine")}
+          className={`flex-shrink-0 py-1 px-6 text-sm font-semibold cursor-pointer rounded-full border-2 ${
+            selectedTab === "falseNine" ? "border-limeGreenOpacity text-lightPurple" : "border-gray-500 text-gray-700"}`}
+        >
+          The False Nine
+        </div>
+        <div
           onClick={() => setSelectedTab("banter")}
           className={`flex-shrink-0 py-1 px-6 text-sm font-semibold cursor-pointer rounded-full border-2 ${
             selectedTab === "banter" ? "border-limeGreenOpacity text-lightPurple" : "border-gray-500 text-gray-700"}`}
@@ -533,7 +596,7 @@ export default function Demo() {
                     <h2 className="font-2xl text-notWhite font-bold mb-4">
                       <button onClick={readMatchSummary}>
                         {selectedMatch.eventStarted
-                          ? `[AI] Match Summary`
+                          ? `[AI] Match Summary  🗣️🎧1.5x`
                           : `[AI] Match Preview  🗣️🎧1.5x`}
                       </button>
                     </h2>
@@ -635,6 +698,60 @@ export default function Demo() {
             <div className="bg-purplePanel p-4 rounded-md text-lightPurple">
               <p className="text-sm">Soon<sup className="text-sm">™</sup></p>
             </div>
+          </div>
+        )}
+
+        {selectedTab === "falseNine" && (
+          <div>
+            {falseNineContent.length > 0 ? (
+              <div key={0} className="mb-4">
+                <h3 className="font-bold text-xl">{falseNineContent[0].title}</h3>
+                <p className="text-sm text-gray-500">{falseNineContent[0].pubDate}</p>
+                <p className="text-sm text-gray-500">Author: {falseNineContent[0].author}</p> {/* Display author */}
+                {falseNineContent[0].image && (
+                  <Image
+                    src={falseNineContent[0].image}
+                    alt="Post Image"
+                    className="mt-2"
+                    layout="responsive"
+                    width={500}  // Set width as the base reference
+                    height={300} // Set height as the corresponding aspect ratio
+                  />
+                )}
+                <a
+                  href={`${falseNineContent[0].link}?referrer=0x8b80755C441d355405CA7571443Bb9247B77Ec16`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-fontRed hover:underline"
+                >
+                  Subscribe to The False Nine
+                </a>
+                <button 
+                  className='text-notWhite ml-2' 
+                  onClick={readMatchSummary}>
+                  🗣️🎧1.5x
+                </button>
+                <div
+                  className="text-lightPurple bg-purplePanel mt-2 space-y-2"
+                  dangerouslySetInnerHTML={{
+                    __html: falseNineContent[0].content,
+                  }}
+                />
+                <a
+                  href={`${falseNineContent[0].link}?referrer=0x8b80755C441d355405CA7571443Bb9247B77Ec16`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-fontRed hover:underline"
+                >
+                  Subscribe to The False Nine
+                </a>
+              </div>
+              
+            ) : (
+              <div>No content available for The False Nine.</div>
+            )}
+            {loadingTFN && <div>Loading content...</div>}
+            {errorTFN && <div className="text-red-500">{errorTFN}</div>}
           </div>
         )}
       </div>
