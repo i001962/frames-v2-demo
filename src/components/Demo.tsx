@@ -27,14 +27,13 @@ export default function Demo() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedMatch, setSelectedMatch] = useState<any>(null);
-  //const [selectedTab, setSelectedTab] = useState("matches"); // Set the default to "matches"
-
   const [gameContext, setGameContext] = useState<any>(null);
-  const [userInfo, setUserInfo] = useState<any>(null);
   const [eventsFetched, setEventsFetched] = useState(false); // Track whether events have been fetched
   const [fantasyData, setFantasyData] = useState<any[]>([]);
   const [loadingFantasy, setLoadingFantasy] = useState<boolean>(false);
   const [errorFantasy, setErrorFantasy] = useState<string | null>(null);
+  const [userInfo, setUserInfo] = useState<any>(null);
+  const [selectedFantasyRow, setSelectedFantasyRow] = useState<any>(null);  // Track the selected row
 
   const apiUrl = 'https://site.api.espn.com/apis/site/v2/sports/soccer/eng.1/scoreboard'; // ESPN Soccer API endpoint
 
@@ -247,7 +246,6 @@ export default function Demo() {
       sdk.actions.addFrame();
   }, []);
 
-
   const castSummary = useCallback(() => {
     if (selectedMatch) {
       const { competitors, homeTeam, awayTeam, homeScore, awayScore, clock, homeLogo, awayLogo, eventStarted } = selectedMatch;
@@ -258,6 +256,35 @@ export default function Demo() {
       sdk.actions.openUrl(url);
     }
   }, [selectedMatch, userInfo?.teamName]);
+
+  const castFantasySummary = useCallback(() => {
+    if (selectedFantasyRow) {
+      const { manager, team, rank, fav_team } = selectedFantasyRow; // Get selected row data
+
+      // Prevent casting if the manager is 'FID not set'
+      console.log(manager);
+      if (manager == 'FID not set 🤦🏽‍♂️') {
+        return;
+      }
+
+      // Check if fav_team exists and cast the appropriate summary message
+      const summary = fav_team 
+        ? `FC-FEPL @${manager} supports ${team.name}. They are ranked #${rank} in the FC fantasy league.\n\nmini-app by @kmacb.eth @gabrieltemtsen et al`
+        : `FC-FEPL @${manager} is currently without a favorite team. They are ranked #${rank} in the FC fantasy league.\n\nmini-app by @kmacb.eth @gabrieltemtsen et al`;
+
+      const encodedSummary = encodeURIComponent(summary);
+      const url = `https://warpcast.com/~/compose?text=${encodedSummary}&channelKey=football&embeds[]=${team.logo || ''}&embeds[]=https://d33m-frames-v2.vercel.app`;
+
+      // Trigger the cast action using the context
+      sdk.actions.openUrl(url); // Open URL with the casted summary
+    }
+  }, [selectedFantasyRow]);
+
+  useEffect(() => {
+    if (selectedFantasyRow) {
+      castFantasySummary();  // Automatically cast when the selected row is updated
+    }
+  }, [selectedFantasyRow, castFantasySummary]);  // Dependency on selectedRow to trigger when it changes
 
   const readMatchSummary = useCallback(() => {
     if (selectedMatch) {
@@ -273,11 +300,7 @@ export default function Demo() {
     const homeTeam = event.shortName.split('@')[1].trim().toLowerCase();
     const awayTeam = event.shortName.split('@')[0].trim().toLowerCase();
     const competitors = event.name;
-    const eventTime = new Date(event.date);
-    const scores = event.competitions[0]?.competitors.map((c: any) => c.score).join('  -  ');
     const eventStarted = new Date() >= new Date(event.date);
-    const dateTimeString = eventTime.toLocaleDateString('en-GB', { month: '2-digit', day: '2-digit' }) +
-      ' ' + eventTime.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
     const clock = event.status.displayClock + ' ' + event.status.type.detail || '00:00';
 
     const homeTeamLogo = event.competitions[0]?.competitors[0]?.team.logo;
@@ -285,52 +308,153 @@ export default function Demo() {
     const homeScore = event.competitions[0]?.competitors[0]?.score;
     const awayScore = event.competitions[0]?.competitors[1]?.score;
 
+    const keyMoments = event.competitions[0]?.details.reduce((acc: any[], detail: any) => {
+      const playerName = (detail.athletesInvolved && detail.athletesInvolved.length > 0) 
+        ? detail.athletesInvolved[0]?.displayName || 'Coaching staff'
+        : 'Coaching staff';
+
+      const action = detail.type.text; // Goal, Yellow Card, etc.
+      const time = detail.clock.displayValue || '00:00';
+      const teamId = detail.team.id; // Get the team id
+
+      let teamLogo = '';
+      if (teamId === event.competitions[0]?.competitors[0]?.team.id) {
+        teamLogo = homeTeamLogo; // Assign home team logo if it's the home team
+      } else {
+        teamLogo = awayTeamLogo; // Otherwise, assign away team logo
+      }
+
+      // Process goals and goal-related actions
+      if (action === "Goal" || action === "Goal - Header" || action === "Penalty - Scored" || action === "Goal - Free-kick" || action === "Own Goal") {
+        // Check if the player is already in the accumulator
+        const existingGoal = acc.find(item => item.playerName === playerName);
+
+        if (existingGoal) {
+          // Add the new goal time to the existing entry
+          existingGoal.times.push(time);
+        } else {
+          // If the player is not in the accumulator, create a new entry
+          acc.push({
+            playerName,
+            times: [time], // Initialize the times array with the first goal time
+            logo: teamLogo, // Add the team logo to the entry
+            action: action === "Own Goal" ? "🔴" : "⚽️" // Red ⚽️ for own goal
+          });
+        }
+      } else {
+        // For Yellow or Red cards, handle them normally
+        acc.push({
+          playerName,
+          times: [time],
+          action: action === "Yellow Card" ? "🟨" : action === "Red Card" ? "🟥" : action,
+          logo: teamLogo, // Add the team logo to the entry
+        });
+      }
+
+      return acc;
+    }, []).map((moment: any, index: number) => {
+      // Format the times for goal scorers on one line
+      const formattedAction = moment.action || "⚽️"; // Default to "⚽️" for goals
+
+      // Apply text-red for Own Goal player names
+      const playerNameClass = formattedAction === "🔴" ? "text-fontRed" : "text-lightPurple"; // Apply red color to Own Goal
+
+      return (
+        <div key={index} className="text-sm text-lightPurple flex items-center">
+          {/* Moment (Action Emoji) Before Player Name */}
+          <span className="mr-2 font-bold">{formattedAction}</span>
+
+          {/* Team Logo */}
+          <Image
+            src={moment.logo || '/assets/defifa_spinner.gif'}
+            alt="Team Logo"
+            className="w-6 h-6 mr-2"
+            width={15}
+            height={15}
+          />
+
+          {/* Player Name */}
+          <span className={playerNameClass}>{moment.playerName}</span>
+
+          {/* Times */}
+          <span className="text-xs ml-1">{moment.times.join(' / ')}</span>
+        </div>
+      );
+    });
+
     return (
       <div key={event.id} className="sidebar">
-        <div className="dropdown-content">
-          <div className="hover:bg-deepPink cursor-pointer">
-            <button
-              onClick={() => {
-                setSelectedMatch({
-                  homeTeam: `${homeTeam}`,
-                  awayTeam: `${awayTeam}`,
-                  competitors: competitors,
-                  homeLogo: homeTeamLogo,
-                  awayLogo: awayTeamLogo,
-                  homeScore: homeScore,
-                  awayScore: awayScore,
-                  clock: clock,
-                  eventStarted: eventStarted,
-                });
-                fetchGameContext(homeTeam, awayTeam);
-                fetchUserData(context?.user?.fid || 0);
-              }}
-              className="dropdown-button cursor-pointer flex items-center mb-2 w-full"
-            >
-              <span className="mt-2 mb-2 flex flex-grow items-center ml-2 mr-2">
+        <div className="hover:bg-deepPink cursor-pointer">
+          <button 
+            onClick={() => {
+              setSelectedMatch({
+                homeTeam: `${homeTeam}`,
+                awayTeam: `${awayTeam}`,
+                competitors: competitors,
+                homeLogo: homeTeamLogo,
+                awayLogo: awayTeamLogo,
+                homeScore: homeScore,
+                awayScore: awayScore,
+                clock: clock,
+                eventStarted: eventStarted,
+              });
+              fetchGameContext(homeTeam, awayTeam);
+              fetchUserData(context?.user?.fid || 0);
+            }}
+            className="dropdown-button cursor-pointer flex items-center justify-center mb-2 w-full"
+          >
+            <span className="flex justify-center space-x-4 ml-2 mr-2">
+              <div className="flex flex-col items-center space-y-1">
                 <Image
                   src={homeTeamLogo || '/assets/defifa_spinner.gif'}
                   alt="Home Team Logo"
                   className="w-8 h-8"
                   width={20}
                   height={20}
-                  style={{ marginRight: '8px' }}
                 />
-                {homeTeam} vs {awayTeam}
+                <span>{homeTeam}</span>
+              </div>
+              <div className="flex flex-col items-center space-y-1">
+                {eventStarted ? (
+                  <>
+                    <span className="text-white font-bold text-2xl">{homeScore} - {awayScore}</span>
+                    <span className="text-lightPurple text-xs">{clock}</span> {/* Displaying the clock if the event has started */}
+                  </>
+                ) : (
+                  <>
+                    <span>Kickoff: {new Date(event.date).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</span> {/* Display Start Time if event hasn't started */}
+                  </>
+                )}
+              </div>
+
+              <div className="flex flex-col items-center space-y-1">
                 <Image
                   src={awayTeamLogo || '/assets/defifa_spinner.gif'}
                   alt="Away Team Logo"
                   className="w-8 h-8"
                   width={20}
                   height={20}
-                  style={{ marginRight: '8px' }}
                 />
-              </span>
-              <span className="m-2 text-sm font-semibold">
-                {eventStarted ? scores : dateTimeString}
-              </span>
-            </button>
-          </div>
+                <span>{awayTeam}</span>
+              </div>
+            </span>
+          </button>
+        </div>
+
+        {/* Display Key Moments only if match is selected and game context is available */}
+        <div className="mt-2">
+          {selectedMatch && gameContext ? (
+            <>
+              <h4 className="text-lightPurple font-semibold">Key Moments:</h4>
+              {keyMoments.length > 0 ? (
+                <div className="space-y-1">{keyMoments}</div>
+              ) : (
+                <span className="text-lightPurple">No key moments yet.</span>
+              )}
+            </>
+          ) : (
+            <span className="text-lightPurple">Select for AI summary & key moments.</span>
+          )}
         </div>
       </div>
     );
@@ -351,9 +475,8 @@ export default function Demo() {
 
   return (
     <div className="w-[400px] mx-auto py-4 px-2">
-      {/* <h1 className="text-2xl font-bold text-center text-notWhite mb-4">{title}</h1> */}
       {/* Tab Navigation */}
-      <div className="flex overflow-x-auto space-x-4 mb-4">
+      <div className="flex overflow-x-auto space-x-4 mb-4 sticky top-0 z-10 bg-darkPurple">
         <div
           onClick={() => setSelectedTab("matches")}
           className={`flex-shrink-0 py-1 px-6 text-sm font-semibold cursor-pointer rounded-full border-2 ${
@@ -383,61 +506,57 @@ export default function Demo() {
           Players
         </div>
       </div>
-
+  
       {/* Tab Content */}
       <div className="bg-darkPurple p-4 rounded-md text-white">
         {selectedTab === "matches" && (
           <div>
-            <h2 className="font-2xl text-notWhite font-bold mb-4">Select for AI Summary</h2>
-             {/*
-             <button
-              onClick={() => setIsEventsOpen(!isEventsOpen)}
-              className="py-2 px-4 mb-4 text-lg bg-deepPink rounded-md text-white"
-            >
-              {isEventsOpen ? "Hide Events" : "Show Events"}
-            </button> */}
-           
-              <div className="p-4 mt-2 bg-purplePanel text-lightPurple rounded-lg">
-                {loading ? (
-                  <div>Loading match context is like waiting for VAR...</div>
-                ) : error ? (
-                  <div className="text-red-500">{error}</div>
-                ) : apiResponse ? (
-                  apiResponse.events.map((event: any) => renderEvent(event))
-                ) : (
-                  <div>No data available.</div>
-                )}
-              </div>
-       
+            <h2 className="font-2xl text-notWhite font-bold mb-4">Select match</h2>
+            {/* Add your button for Matches Tab, or render your matches content here */}
+            <div className="p-4 mt-2 bg-purplePanel text-lightPurple rounded-lg">
+              {loading ? (
+                <div>Loading match context is like waiting for VAR...</div>
+              ) : error ? (
+                <div className="text-red-500">{error}</div>
+              ) : apiResponse ? (
+                apiResponse.events.map((event: any) => renderEvent(event)) // Ensure renderEvent function works here
+              ) : (
+                <div>No data available.</div>
+              )}
+            </div>
             <div className="space-y-4">
               <h3 className="font-semibold text-lg"></h3>
-                          {/* Container for AI Summary and Cast Button */}
+              {/* Container for AI Summary and Cast Button */}
               <div className="mt-4 text-lightPurple bg-purplePanel">
-              {gameContext ? (
-                <div className="p-4 bg-purplePanel text-lightPurple rounded-lg">
-                  <h2 className="font-2xl text-notWhite font-bold mb-4">
-                    <button onClick={readMatchSummary}>{selectedMatch.eventStarted ? `[AI] Match Summary` : `[AI] Match Preview  🗣️🎧1.5x`}</button>
-                  </h2>
-                  <pre className="text-sm whitespace-pre-wrap break-words">{gameContext}</pre>
-                  <div className="mt-4">
-                    <Button onClick={castSummary}>Cast</Button>
+                {gameContext ? (
+                  <div className="p-4 bg-purplePanel text-lightPurple rounded-lg">
+                    <h2 className="font-2xl text-notWhite font-bold mb-4">
+                      <button onClick={readMatchSummary}>
+                        {selectedMatch.eventStarted
+                          ? `[AI] Match Summary`
+                          : `[AI] Match Preview  🗣️🎧1.5x`}
+                      </button>
+                    </h2>
+                    <pre className="text-sm whitespace-pre-wrap break-words">{gameContext}</pre>
+                    <div className="mt-4">
+                      <Button onClick={castSummary}>Cast</Button>
+                    </div>
+                    <div className="mt-4">
+                      <Button onClick={installMiniAp}>Install mini-app</Button>
+                    </div>
                   </div>
-                  <div className="mt-4">
+                ) : loading ? (
+                  <div></div>
+                ) : (
+                  <div>
                     <Button onClick={installMiniAp}>Install mini-app</Button>
                   </div>
-                </div>
-              ) : loading ? (
-                <div></div>
-              ) : (
-                <div>
-                  <Button onClick={installMiniAp}>Install mini-app</Button>
-                </div>
-              )}
-              </div> 
+                )}
+              </div>
             </div>
           </div>
         )}
-
+  
         {selectedTab === "fantasy" && (
           <div>
             <h2 className="font-2xl text-notWhite font-bold mb-4">Table</h2>
@@ -445,7 +564,7 @@ export default function Demo() {
               <div className="text-lightPurple">
                 <div>Loading fantasy stats...</div>
                 <div>
-                  The longest VAR check in Premier League history was five minutes and 37 seconds long and took place during a March 2024 match between West Ham and Aston Villa
+                  The longest VAR check in Premier League history was five minutes and 37 seconds long and took place during a March 2024 match between West Ham and Aston Villa.
                 </div>
               </div>
             ) : errorFantasy ? (
@@ -462,7 +581,13 @@ export default function Demo() {
                   </thead>
                   <tbody className="text-lightPurple text-sm">
                     {fantasyData.map((entry, index) => (
-                      <tr key={index}>
+                      <tr
+                        key={index}
+                        className="cursor-pointer hover:bg-deepPink"
+                        onClick={() => {
+                          setSelectedFantasyRow(entry); // Set the selected row when clicked
+                        }}
+                      >
                         <td className="relative flex items-center space-x-3 px-4">
                           <Image
                             src={entry.pfp || '/defifa_spinner.gif'}
@@ -473,13 +598,13 @@ export default function Demo() {
                           />
                           {entry.team.logo && entry.team.logo !== '/defifa_spinner.gif' && (
                             <Image
-                            src={entry.team.logo} 
-                            alt="Team Logo"
-                            className="rounded-full w-5 h-5 absolute top-0 left-10"
-                            width={15}
-                            height={15}
-                            loading="lazy" 
-                          />
+                              src={entry.team.logo}
+                              alt="Team Logo"
+                              className="rounded-full w-5 h-5 absolute top-0 left-10"
+                              width={15}
+                              height={15}
+                              loading="lazy"
+                            />
                           )}
                         </td>
                         <td>{entry.manager}</td>
@@ -494,7 +619,7 @@ export default function Demo() {
             )}
           </div>
         )}
-
+  
         {selectedTab === "banter" && (
           <div>
             <h2 className="font-2xl text-notWhite font-bold mb-4">Bot</h2>
@@ -503,7 +628,7 @@ export default function Demo() {
             </div>
           </div>
         )}
-
+  
         {selectedTab === "players" && (
           <div>
             <h2 className="font-2xl text-notWhite font-bold mb-4">Collect</h2>
@@ -512,8 +637,8 @@ export default function Demo() {
             </div>
           </div>
         )}
-
       </div>
     </div>
   );
+  
 }
