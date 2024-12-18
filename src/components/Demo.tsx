@@ -62,7 +62,6 @@ export default function Demo() {
       const fetchData = async () => {
         setLoading(true);
         setError(null);
-
         try {
           const response = await fetch(apiUrl);
           if (!response.ok) {
@@ -310,7 +309,7 @@ export default function Demo() {
   const castSummary = useCallback(() => {
     if (selectedMatch) {
       const { competitors, homeTeam, awayTeam, homeScore, awayScore, clock, homeLogo, awayLogo, eventStarted } = selectedMatch;
-      const matchSummary = `${competitors}\n${homeTeam.toUpperCase()} ${eventStarted ? homeScore : ''} - ${eventStarted ? awayScore : ''} ${awayTeam.toUpperCase()}\n${eventStarted ? `${clock}` : `Kickoff: ${clock}`}\n\nUsing the d33m live match mini-app https://d33m-frames-v2.vercel.app cc @kmacb.eth Go ${userInfo?.teamName || 'd33m!'}`;
+      const matchSummary = `${competitors}\n${homeTeam.toUpperCase()} ${eventStarted ? homeScore : ''} - ${eventStarted ? awayScore : ''} ${awayTeam.toUpperCase()}\n${eventStarted ? `${clock}` : `Kickoff: ${clock}`}\n\nUsing the FC Footy mini-app https://d33m-frames-v2.vercel.app cc @kmacb.eth Go ${userInfo?.teamName || 'd33m!'}`;
       const encodedSummary = encodeURIComponent(matchSummary);
       const url = `https://warpcast.com/~/compose?text=${encodedSummary}&channelKey=football&embeds[]=${homeLogo}&embeds[]=${awayLogo}`;
       sdk.actions.openUrl(url);
@@ -581,35 +580,35 @@ export default function Demo() {
       {/* Tab Navigation */}
       <div className="flex overflow-x-auto space-x-4 mb-4 sticky top-0 z-10 bg-darkPurple">
         <div
-          onClick={() => setSelectedTab("matches")}
+           onClick={() => { window.scrollTo(0, 0); setSelectedTab("matches")}}
           className={`flex-shrink-0 py-1 px-6 text-sm font-semibold cursor-pointer rounded-full border-2 ${
             selectedTab === "matches" ? "border-limeGreenOpacity text-lightPurple" : "border-gray-500 text-gray-500"}`}
         >
           Matches
         </div>
         <div
-          onClick={() => setSelectedTab("fantasy")}
+           onClick={() => { window.scrollTo(0, 0); setSelectedTab("fantasy")}}
           className={`flex-shrink-0 py-1 px-6 text-sm font-semibold cursor-pointer rounded-full border-2 ${
             selectedTab === "fantasy" ? "border-limeGreenOpacity text-lightPurple" : "border-gray-500 text-gray-500"}`}
         >
           Fantasy
         </div>
         <div
-          onClick={() => setSelectedTab("falseNine")}
+           onClick={() => { window.scrollTo(0, 0); setSelectedTab("falseNine")}}
           className={`flex-shrink-0 py-1 px-6 text-sm font-semibold cursor-pointer rounded-full border-2 ${
             selectedTab === "falseNine" ? "border-limeGreenOpacity text-lightPurple" : "border-gray-500 text-gray-500"}`}
         >
           The False Nine
         </div>
         <div
-          onClick={() => setSelectedTab("banter")}
+           onClick={() => { window.scrollTo(0, 0); setSelectedTab("banter")}}
           className={`flex-shrink-0 py-1 px-6 text-sm font-semibold cursor-pointer rounded-full border-2 ${
             selectedTab === "banter" ? "border-limeGreenOpacity text-lightPurple" : "border-gray-500 text-gray-500"}`}
         >
           Banter
         </div>
         <div
-          onClick={() => setSelectedTab("players")}
+           onClick={() => { window.scrollTo(0, 0); setSelectedTab("players")}}
           className={`flex-shrink-0 py-1 px-6 text-sm font-semibold cursor-pointer rounded-full border-2 ${
             selectedTab === "players" ? "border-limeGreenOpacity text-lightPurple" : "border-gray-500 text-gray-500"}`}
         >
@@ -685,7 +684,7 @@ export default function Demo() {
                       <th className="text-notWhite text-left px-4">Pts</th>
                     </tr>
                   </thead>
-                  <tbody className="text-lightPurple text-sm">
+                  <tbody className="text-lightPurple text-sm mt-2 border-spacing-2">
                     {fantasyData.map((entry, index) => (
                       <tr
                         key={index}
