@@ -36,6 +36,7 @@ export default function Demo() {
   const [userInfo, setUserInfo] = useState<any>(null);
   const [selectedFantasyRow, setSelectedFantasyRow] = useState<any>(null);  
   const [falseNineContent, setFalseNineContent] = useState<{ title: string, content: string, link: string, author: string, image: string, pubDate: string }[]>([]);
+  const [currentIndex, setCurrentIndex] = useState(0); // Track current post index
   const [loadingTFN, setLoadingTFN] = useState(false);
   const [pauseAt, setPauseAt] = useState(0); // Track the position when paused
   const [isReading, setIsReading] = useState(false); // Track if speech is reading
@@ -83,11 +84,58 @@ export default function Demo() {
       };
 
       fetchData();
-    }
+    };
     if (selectedTab === "falseNine") {
+      const fetchFalseNineContent = async () => {
+        setErrorTFN(null);
+        try {
+          setLoadingTFN(true);
+          const response = await axios.get('https://api.paragraph.xyz/blogs/rss/@thefalsenine');
+  
+          // Parse the RSS content using DOMParser
+          const parser = new DOMParser();
+          const xmlDoc = parser.parseFromString(response.data, 'text/xml');
+  
+          // Check if there are any items in the RSS feed
+          const items = xmlDoc.getElementsByTagName('item');
+          if (items.length === 0) {
+            setErrorTFN("No items found in the RSS feed.");
+            return;
+          }
+  
+          // Extract the title, link, pubDate, and content:encoded from each item
+          const content = Array.from(items).map(item => {
+            const title = item.getElementsByTagName('title')[0]?.textContent || '';
+            const link = item.getElementsByTagName('link')[0]?.textContent || '';
+            const pubDate = item.getElementsByTagName('pubDate')[0]?.textContent || '';
+            const contentEncoded = item.getElementsByTagName('content:encoded')[0]?.textContent || '';
+            const author = item.getElementsByTagName('author')[0]?.textContent || '';
+            const imageUrl = item.getElementsByTagName('enclosure')[0]?.getAttribute('url') || ''; // Get image URL from enclosure
+            return {
+              title,
+              link,
+              pubDate,
+              content: contentEncoded,
+              author,
+              image: imageUrl
+            };
+          });
+  
+          if (content.length === 0 || content.every(c => !c.content.trim())) {
+            setErrorTFN("No content available.");
+          } else {
+            setFalseNineContent(content); // Set the fetched and formatted content
+          }
+        } catch (err) {
+          setErrorTFN("Failed to load content.");
+          console.error('Error fetching or parsing RSS:', err);
+        } finally {
+          setLoadingTFN(false);
+        }
+      };
       fetchFalseNineContent();
-    }
-  }, [selectedTab]);
+    };
+  }, [eventsFetched, selectedTab]);
 
   useEffect(() => {
     const fetchFantasyData = async () => {
@@ -233,54 +281,11 @@ export default function Demo() {
       console.error("Error fetching user data:", err);
     }
   };
-  
-  const fetchFalseNineContent = async () => {
-    setErrorTFN(null);
-    try {
-      setLoadingTFN(true);
-      const response = await axios.get('https://api.paragraph.xyz/blogs/rss/@thefalsenine');
-  
-      // Parse the RSS content using DOMParser
-      const parser = new DOMParser();
-      const xmlDoc = parser.parseFromString(response.data, 'text/xml');
-  
-      // Check if there are any items in the RSS feed
-      const items = xmlDoc.getElementsByTagName('item');
-      if (items.length === 0) {
-        setErrorTFN("No items found in the RSS feed.");
-        return;
-      }
-  
-      // Extract the title, link, pubDate, and content:encoded from each item
-      const content = Array.from(items).map(item => {
-        const title = item.getElementsByTagName('title')[0]?.textContent || '';
-        const link = item.getElementsByTagName('link')[0]?.textContent || '';
-        const pubDate = item.getElementsByTagName('pubDate')[0]?.textContent || '';
-        const contentEncoded = item.getElementsByTagName('content:encoded')[0]?.textContent || '';
-        const author = item.getElementsByTagName('author')[0]?.textContent || '';
-        const imageUrl = item.getElementsByTagName('enclosure')[0]?.getAttribute('url') || ''; // Get image URL from enclosure
-        return {
-          title,
-          link,
-          pubDate,
-          content: contentEncoded,
-          author,
-          image: imageUrl
-        };
-      });
-  
-      // If no content is found, show a message
-      if (content.length === 0 || content.every(c => !c.content.trim())) {
-        setErrorTFN("No content available.");
-      } else {
-        setFalseNineContent(content); // Set the fetched and formatted content
-      }
-    } catch (err) {
-      setErrorTFN("Failed to load content.");
-      console.error('Error fetching or parsing RSS:', err);
-    } finally {
-      setLoadingTFN(false);
-    }
+
+  // Handle Subscribe button click
+  const handleSubscribeClick = () => {
+    const subscriptionLink = `${falseNineContent[currentIndex].link}?referrer=0x8b80755C441d355405CA7571443Bb9247B77Ec16`;
+    window.open(subscriptionLink, "_blank", "noopener noreferrer allow-popups");
   };
   
   const fetchGameContext = (homeTeam: string, awayTeam: string) => {
@@ -572,11 +577,6 @@ export default function Demo() {
     );
   };
   
-  const handleSubscribeClick = () => {
-    const subscriptionLink = `${falseNineContent[0].link}?referrer=0x8b80755C441d355405CA7571443Bb9247B77Ec16`;
-    window.open(subscriptionLink, "_blank noopener noreferrer allow-scripts allow-same-origin allow-popups"); // Opens the link in a new tab
-  };
-  
   if (!isSDKLoaded) return <div>Waiting for VAR...</div>;
 
   // If ctx is not defined, show the message to go to Purple app
@@ -765,9 +765,9 @@ export default function Demo() {
           <div>
             {falseNineContent.length > 0 ? (
               <div key={0} className="mb-4">
-                <h3 className="font-bold text-notWhite text-xl">{falseNineContent[0].title}</h3>
-                <p className="text-sm text-gray-500">{falseNineContent[0].pubDate}</p>
-                <p className="text-sm text-gray-500">Author: {falseNineContent[0].author}
+                <h3 className="font-bold text-xl text-notWhite">{falseNineContent[currentIndex].title}</h3>
+                <p className="text-sm text-gray-500">{falseNineContent[currentIndex].pubDate}</p>
+                <p className="text-sm text-gray-500">Author: {falseNineContent[currentIndex].author}
                 <button 
                   className="text-gray-500 ml-2" 
                   onClick={readTFN}
@@ -783,9 +783,9 @@ export default function Demo() {
                     🛑 Stop
                   </button>
                 )}</p> 
-                {falseNineContent[0].image && (
+                {falseNineContent[currentIndex].image && (
                   <Image
-                    src={falseNineContent[0].image}
+                    src={falseNineContent[currentIndex].image}
                     alt="Post Image"
                     className="mt-2"
                     layout="responsive"
@@ -807,14 +807,47 @@ export default function Demo() {
                 <div
                   className="text-lightPurple bg-purplePanel mt-2 space-y-2"
                   dangerouslySetInnerHTML={{
-                    __html: falseNineContent[0].content,
+                    __html: falseNineContent[currentIndex].content,
                   }}
                 />
                 <div className="mt-4">
                   <Button onClick={handleSubscribeClick}>Tip Author (soon)</Button>
                 </div>
-              </div>
-              
+                {/* Full width preview cards for other articles */}
+                <div className="mt-8">
+                  <h4 className="text-xl font-bold text-notWhite">People also read</h4>
+                  <div className="mt-4 space-y-6">
+                    {falseNineContent.slice(1, 5).map((post, index) => (
+                      <div key={index} className="bg-purplePanel p-4 rounded-md text-lightPurple flex items-center">
+                        {/* Left side: Title and Date */}
+                        <button onClick={() => {
+                          setCurrentIndex(index + 1);
+                          window.scrollTo(0, 0);
+                        }} className="flex-1 pr-4">
+                          <div className="flex flex-col">
+                            <h5 className="font-bold text-md text-notWhite">{post.title}</h5>
+                            <p className="text-sm text-gray-500">{post.pubDate}</p>
+                          </div>
+                        </button>
+
+                        {/* Right side: Image */}
+                        <div className="w-36 h-24 overflow-hidden rounded-md ml-4">
+                          {post.image && (
+                            <Image
+                              src={post.image}
+                              alt="Thumbnail"
+                              width={150}
+                              height={100}
+                              className="w-full h-auto object-cover"
+                            />
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+              </div>        
             ) : (
               <div>No content available for The False Nine.</div>
             )}
