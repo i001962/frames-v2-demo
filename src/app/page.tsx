@@ -7,13 +7,13 @@ const frame = {
   version: "next",
   imageUrl: `${appUrl}/opengraph-image`,
   button: {
-    title: "Farcaster Footy App",
+    title: "FC Footy App",
     action: {
       type: "launch_frame",
-      name: "Farcaster Footy App",
+      name: "FC Footy App",
       url: appUrl,
       splashImageUrl: `${appUrl}/defifa_spinner.gif`,
-      splashBackgroundColor: "#BD195D",
+      splashBackgroundColor: "#010513",
     },
   },
 };
@@ -22,10 +22,10 @@ export const revalidate = 300;
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
-    title: "Farcaster Footy App",
+    title: "FC Footy App",
     openGraph: {
-      title: "Farcaster Footy App",
-      description: "Farcaster Footy App: Live Match Summaries, Fantasy League, Banter bot, Collectables & Contests",
+      title: "FC Footy App",
+      description: "FC Footy App: Live Match Summaries, Fantasy League, Banter bot, Collectables & Contests",
     },
     other: {
       "fc:frame": JSON.stringify(frame),
