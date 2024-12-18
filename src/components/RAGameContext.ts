@@ -50,10 +50,9 @@ const fillGameContext = async (sixCharacterString: string): Promise<any> => {
 
         if (!summaryData.keyEvents) {
           console.log('No key events found for:', sixCharacterString, 'loading standings instead');
-          //await sendOpenAi(`Here are the EPL standings: ${summaryData.standings}`, openAiApiKey);
-          //summarizedEvents = summaryData.standings.groups[0].groups.entries;
-          summarizedEvents = [{text: `Provide a match preview for ${sixCharacterString.slice(0, 3)} vs ${sixCharacterString.slice(3, 6)} and odds of wiinning. Do not include markdown nor links.`}];
-
+          summarizedEvents = [{
+            text: `Provide a match preview for the upcoming match between ${sixCharacterString.slice(0, 3)} and ${sixCharacterString.slice(3, 6)}. Use future tense to describe what is expected to happen, such as key players to watch, possible match dynamics, and any relevant statistics or history. Do not speculate on a winner or mention any results, and avoid using past tense (e.g., "won", "lost"). Focus solely on the upcoming match and do not include any external links.`
+          }];
         } else {
           summarizedEvents = summaryData.keyEvents.map((event: {
             text: any;
@@ -72,8 +71,9 @@ const fillGameContext = async (sixCharacterString: string): Promise<any> => {
 
         const gameInfo = summaryData.gameInfo;
         const standings = summaryData.standings;
-        const prefixPrompt = {prompt: `Provide a match summary for ${sixCharacterString.slice(0, 3)} vs ${sixCharacterString.slice(3, 6)} do it in a manner that mocks of the losing team. Becareful to not say a team won when if it was a draw or the match is not at FT final time yet. Do not include markdown nor any external links.`};
-
+        const prefixPrompt = {
+          prompt: `Provide a match preview for the upcoming match between ${sixCharacterString.slice(0, 3)} and ${sixCharacterString.slice(3, 6)}. Describe the expected match dynamics using future tense only, such as key players, anticipated strategies, and possible match outcomes. Do **not** use past tense like 'won', 'lost', or 'defeated'. The match has not yet started, so focus on the **future** and avoid making definitive claims about the result. Do not include any external links or markdown.`
+        };
         const jsonData = JSON.stringify({ prefixPrompt, summarizedEvents, gameInfo, standings });
         // messageHistory = manageContext(messageHistory, jsonData, maxTokens);
         const aiSummary = await sendOpenAi(jsonData, openAiApiKey || "");
