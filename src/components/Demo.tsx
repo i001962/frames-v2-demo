@@ -98,7 +98,7 @@ export default function Demo() {
         // Query the 'standings' table for 'entry_name', 'rank', 'last_name', and 'fav_team'
         const { data, error } = await supabase
           .from('standings')
-          .select('entry_name, rank, last_name, fav_team');
+          .select('entry_name, rank, last_name, fav_team, total');
 
         if (error) {
           throw error;
@@ -571,14 +571,19 @@ export default function Demo() {
       </div>
     );
   };
-
+  
+  const handleSubscribeClick = () => {
+    const subscriptionLink = `${falseNineContent[0].link}?referrer=0x8b80755C441d355405CA7571443Bb9247B77Ec16`;
+    window.open(subscriptionLink, "_blank noopener noreferrer allow-scripts allow-same-origin allow-popups"); // Opens the link in a new tab
+  };
+  
   if (!isSDKLoaded) return <div>Waiting for VAR...</div>;
 
   // If ctx is not defined, show the message to go to Purple app
   if (!context) {
     return (
       <div className="w-[375px] mx-auto py-4 px-2">
-        <h2 className="text-2xl font-bold text-center text-notWhite">d33m live EPL match summaries mini-app</h2>
+        <h2 className="text-2xl font-bold text-center text-notWhite">FC Footy mini-app. Live match summaries, fantasy league, analysis and more.</h2>
         <p className="text-center mt-4 text-fontRed">Open in a Farcaster app</p>
         <a href="https://warpcast.com/kmacb.eth/0xac8d7401" target="_blank" rel="noreferrer" className="block text-center mt-4 text-lightPurple underline">Go to Warpcast</a>
       </div>
@@ -592,35 +597,35 @@ export default function Demo() {
         <div
           onClick={() => setSelectedTab("matches")}
           className={`flex-shrink-0 py-1 px-6 text-sm font-semibold cursor-pointer rounded-full border-2 ${
-            selectedTab === "matches" ? "border-limeGreenOpacity text-lightPurple" : "border-gray-500 text-gray-700"}`}
+            selectedTab === "matches" ? "border-limeGreenOpacity text-lightPurple" : "border-gray-500 text-gray-500"}`}
         >
           Matches
         </div>
         <div
           onClick={() => setSelectedTab("fantasy")}
           className={`flex-shrink-0 py-1 px-6 text-sm font-semibold cursor-pointer rounded-full border-2 ${
-            selectedTab === "fantasy" ? "border-limeGreenOpacity text-lightPurple" : "border-gray-500 text-gray-700"}`}
+            selectedTab === "fantasy" ? "border-limeGreenOpacity text-lightPurple" : "border-gray-500 text-gray-500"}`}
         >
           Fantasy
         </div>
         <div
           onClick={() => setSelectedTab("falseNine")}
           className={`flex-shrink-0 py-1 px-6 text-sm font-semibold cursor-pointer rounded-full border-2 ${
-            selectedTab === "falseNine" ? "border-limeGreenOpacity text-lightPurple" : "border-gray-500 text-gray-700"}`}
+            selectedTab === "falseNine" ? "border-limeGreenOpacity text-lightPurple" : "border-gray-500 text-gray-500"}`}
         >
           The False Nine
         </div>
         <div
           onClick={() => setSelectedTab("banter")}
           className={`flex-shrink-0 py-1 px-6 text-sm font-semibold cursor-pointer rounded-full border-2 ${
-            selectedTab === "banter" ? "border-limeGreenOpacity text-lightPurple" : "border-gray-500 text-gray-700"}`}
+            selectedTab === "banter" ? "border-limeGreenOpacity text-lightPurple" : "border-gray-500 text-gray-500"}`}
         >
           Banter
         </div>
         <div
           onClick={() => setSelectedTab("players")}
           className={`flex-shrink-0 py-1 px-6 text-sm font-semibold cursor-pointer rounded-full border-2 ${
-            selectedTab === "players" ? "border-limeGreenOpacity text-lightPurple" : "border-gray-500 text-gray-700"}`}
+            selectedTab === "players" ? "border-limeGreenOpacity text-lightPurple" : "border-gray-500 text-gray-500"}`}
         >
           Players
         </div>
@@ -660,9 +665,6 @@ export default function Demo() {
                     <div className="mt-4">
                       <Button onClick={castSummary}>Cast</Button>
                     </div>
-{/*                     <div className="mt-4">
-                      <Button onClick={installMiniAp}>Install mini-app</Button>
-                    </div> */}
                   </div>
                 ) : loading ? (
                   <div></div>
@@ -693,9 +695,10 @@ export default function Demo() {
                 <table className="w-full">
                   <thead>
                     <tr>
-                      <th className="text-notWhite text-left px-4">Fav Club</th>
-                      <th className="text-notWhite text-left px-4">Manager</th>
+                      <th className="text-notWhite text-left px-4">FC</th>
+                      <th className="text-notWhite text-left">Manager</th>
                       <th className="text-notWhite text-left px-4">Rank</th>
+                      <th className="text-notWhite text-left px-4">Pts</th>
                     </tr>
                   </thead>
                   <tbody className="text-lightPurple text-sm">
@@ -707,7 +710,7 @@ export default function Demo() {
                           setSelectedFantasyRow(entry); // Set the selected row when clicked
                         }}
                       >
-                        <td className="relative flex items-center space-x-3 px-4">
+                        <td className="relative flex items-center space-x-2 px-2 mr-2">
                           <Image
                             src={entry.pfp || '/defifa_spinner.gif'}
                             alt="Home Team Logo"
@@ -719,7 +722,7 @@ export default function Demo() {
                             <Image
                               src={entry.team.logo}
                               alt="Team Logo"
-                              className="rounded-full w-5 h-5 absolute top-0 left-10"
+                              className="rounded-full w-5 h-5 absolute top-0 left-7"
                               width={15}
                               height={15}
                               loading="lazy"
@@ -728,6 +731,7 @@ export default function Demo() {
                         </td>
                         <td>{entry.manager}</td>
                         <td className="text-center">{entry.rank}</td>
+                        <td className="text-center">{entry.total}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -763,27 +767,9 @@ export default function Demo() {
               <div key={0} className="mb-4">
                 <h3 className="font-bold text-notWhite text-xl">{falseNineContent[0].title}</h3>
                 <p className="text-sm text-gray-500">{falseNineContent[0].pubDate}</p>
-                <p className="text-sm text-gray-500">Author: {falseNineContent[0].author}</p> {/* Display author */}
-                {falseNineContent[0].image && (
-                  <Image
-                    src={falseNineContent[0].image}
-                    alt="Post Image"
-                    className="mt-2"
-                    layout="responsive"
-                    width={500}  // Set width as the base reference
-                    height={300} // Set height as the corresponding aspect ratio
-                  />
-                )}
-                <a
-                  href={`${falseNineContent[0].link}?referrer=0x8b80755C441d355405CA7571443Bb9247B77Ec16`}
-                  target="_blank"
-                  rel="noopener noreferrer allow-popups"
-                  className="text-fontRed hover:underline"
-                >
-                  Subscribe to The False Nine
-                </a>
+                <p className="text-sm text-gray-500">Author: {falseNineContent[0].author}
                 <button 
-                  className="text-notWhite ml-2" 
+                  className="text-gray-500 ml-2" 
                   onClick={readTFN}
                 >
                   {isReading ? "⏸️ Pause" : "🗣️🎧1.5x"} 
@@ -796,21 +782,37 @@ export default function Demo() {
                   >
                     🛑 Stop
                   </button>
+                )}</p> 
+                {falseNineContent[0].image && (
+                  <Image
+                    src={falseNineContent[0].image}
+                    alt="Post Image"
+                    className="mt-2"
+                    layout="responsive"
+                    width={500}  // Set width as the base reference
+                    height={300} // Set height as the corresponding aspect ratio
+                  />
                 )}
+{/*                 <a
+                  href={`${falseNineContent[0].link}?referrer=0x8b80755C441d355405CA7571443Bb9247B77Ec16`}
+                  target="_blank"
+                  rel="noopener noreferrer allow-popups"
+                  className="text-fontRed hover:underline"
+                >
+                  Subscribe to The False Nine
+                </a> */}
+                <div className="mt-4">
+                  <Button onClick={handleSubscribeClick}>Subscribe (soon)</Button>
+                </div>
                 <div
                   className="text-lightPurple bg-purplePanel mt-2 space-y-2"
                   dangerouslySetInnerHTML={{
                     __html: falseNineContent[0].content,
                   }}
                 />
-                <a
-                  href={`${falseNineContent[0].link}?referrer=0x8b80755C441d355405CA7571443Bb9247B77Ec16`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-fontRed hover:underline"
-                >
-                  Subscribe to The False Nine
-                </a>
+                <div className="mt-4">
+                  <Button onClick={handleSubscribeClick}>Tip Author (soon)</Button>
+                </div>
               </div>
               
             ) : (
