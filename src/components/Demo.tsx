@@ -120,7 +120,6 @@ export default function Demo() {
               image: imageUrl
             };
           });
-  
           if (content.length === 0 || content.every(c => !c.content.trim())) {
             setErrorTFN("No content available.");
           } else {
@@ -282,7 +281,6 @@ export default function Demo() {
     }
   };
 
-  // Handle Subscribe button click
   const handleSubscribeClick = () => {
     const subscriptionLink = `${falseNineContent[currentIndex].link}?referrer=0x8b80755C441d355405CA7571443Bb9247B77Ec16`;
     window.open(subscriptionLink, "_blank", "noopener noreferrer allow-popups");
@@ -315,7 +313,6 @@ export default function Demo() {
       const matchSummary = `${competitors}\n${homeTeam.toUpperCase()} ${eventStarted ? homeScore : ''} - ${eventStarted ? awayScore : ''} ${awayTeam.toUpperCase()}\n${eventStarted ? `${clock}` : `Kickoff: ${clock}`}\n\nUsing the d33m live match mini-app https://d33m-frames-v2.vercel.app cc @kmacb.eth Go ${userInfo?.teamName || 'd33m!'}`;
       const encodedSummary = encodeURIComponent(matchSummary);
       const url = `https://warpcast.com/~/compose?text=${encodedSummary}&channelKey=football&embeds[]=${homeLogo}&embeds[]=${awayLogo}`;
-
       sdk.actions.openUrl(url);
     }
   }, [selectedMatch, userInfo?.teamName]);
@@ -323,14 +320,9 @@ export default function Demo() {
   const castFantasySummary = useCallback(() => {
     if (selectedFantasyRow) {
       const { manager, team, rank, fav_team } = selectedFantasyRow; // Get selected row data
-
-      // Prevent casting if the manager is 'FID not set'
-      console.log(manager);
       if (manager == 'FID not set 🤦🏽‍♂️') {
         return;
       }
-
-      // Check if fav_team exists and cast the appropriate summary message
       const summary = fav_team 
         ? `FC-FEPL @${manager} supports ${team.name}. They are ranked #${rank} in the FC fantasy league.\n\nmini-app by @kmacb.eth @gabrieltemtsen et al`
         : `FC-FEPL @${manager} is currently without a favorite team. They are ranked #${rank} in the FC fantasy league.\n\nmini-app by @kmacb.eth @gabrieltemtsen et al`;
@@ -338,7 +330,6 @@ export default function Demo() {
       const encodedSummary = encodeURIComponent(summary);
       const url = `https://warpcast.com/~/compose?text=${encodedSummary}&channelKey=football&embeds[]=${team.logo || ''}&embeds[]=https://d33m-frames-v2.vercel.app`;
 
-      // Trigger the cast action using the context
       sdk.actions.openUrl(url); // Open URL with the casted summary
     }
   }, [selectedFantasyRow]);
@@ -480,8 +471,6 @@ export default function Demo() {
         <div key={index} className="text-sm text-lightPurple flex items-center">
           {/* Moment (Action Emoji) Before Player Name */}
           <span className="mr-2 font-bold">{formattedAction}</span>
-
-          {/* Team Logo */}
           <Image
             src={moment.logo || '/assets/defifa_spinner.gif'}
             alt="Team Logo"
@@ -489,11 +478,7 @@ export default function Demo() {
             width={15}
             height={15}
           />
-
-          {/* Player Name */}
           <span className={playerNameClass}>{moment.playerName}</span>
-
-          {/* Times */}
           <span className="text-xs ml-1">{moment.times.join(' / ')}</span>
         </div>
       );
@@ -501,7 +486,7 @@ export default function Demo() {
 
     return (
       <div key={event.id} className="sidebar">
-        <div className="hover:bg-deepPink cursor-pointer">
+        <div className="hover:bg-deepPink cursor-pointer border  border-darkPurple">
           <button 
             onClick={() => {
               setSelectedMatch({
@@ -539,11 +524,15 @@ export default function Demo() {
                   </>
                 ) : (
                   <>
-                    <span>Kickoff: {new Date(event.date).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</span> {/* Display Start Time if event hasn't started */}
+                    <span className="flex flex-col items-center">
+                      <span>Kickoff:</span>
+                      <span className="text-sm text-lightPurple">
+                        {new Date(event.date).toLocaleString('en-GB', { weekday: 'short',  hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </span>
                   </>
                 )}
               </div>
-
               <div className="flex flex-col items-center space-y-1">
                 <Image
                   src={awayTeamLogo || '/assets/defifa_spinner.gif'}
@@ -560,18 +549,16 @@ export default function Demo() {
 
         {/* Display Key Moments only if match is selected and game context is available */}
         <div className="mt-2">
-          {selectedMatch && gameContext ? (
-            <>
-              <h4 className="text-lightPurple font-semibold">Key Moments:</h4>
-              {keyMoments.length > 0 ? (
-                <div className="space-y-1">{keyMoments}</div>
-              ) : (
-                <span className="text-lightPurple">No key moments yet.</span>
-              )}
-            </>
+        {eventStarted && selectedMatch && gameContext && (
+        <div className="mt-2">
+          <h4 className="text-lightPurple font-semibold">Key Moments:</h4>
+          {keyMoments.length > 0 ? (
+            <div className="space-y-1">{keyMoments}</div>
           ) : (
-            <span className="text-lightPurple">Select for AI summary & key moments.</span>
+            <span className="text-lightPurple">No key moments yet.</span>
           )}
+        </div>
+      )}
         </div>
       </div>
     );
@@ -579,7 +566,6 @@ export default function Demo() {
   
   if (!isSDKLoaded) return <div>Waiting for VAR...</div>;
 
-  // If ctx is not defined, show the message to go to Purple app
   if (!context) {
     return (
       <div className="w-[375px] mx-auto py-4 px-2">
@@ -670,14 +656,12 @@ export default function Demo() {
                   <div></div>
                 ) : (
                   <div>
-{/*                     <Button onClick={installMiniAp}>Install mini-app</Button>
- */}                  </div>
+                 </div>
                 )}
               </div>
             </div>
           </div>
         )}
-  
         {selectedTab === "fantasy" && (
           <div>
             <h2 className="font-2xl text-notWhite font-bold mb-4">Table</h2>
@@ -742,7 +726,6 @@ export default function Demo() {
             )}
           </div>
         )}
-  
         {selectedTab === "banter" && (
           <div>
             <h2 className="font-2xl text-notWhite font-bold mb-4">Bot</h2>
@@ -751,7 +734,6 @@ export default function Demo() {
             </div>
           </div>
         )}
-  
         {selectedTab === "players" && (
           <div>
             <h2 className="font-2xl text-notWhite font-bold mb-4">Collect</h2>
@@ -760,13 +742,21 @@ export default function Demo() {
             </div>
           </div>
         )}
-
         {selectedTab === "falseNine" && (
           <div>
             {falseNineContent.length > 0 ? (
               <div key={0} className="mb-4">
                 <h3 className="font-bold text-xl text-notWhite">{falseNineContent[currentIndex].title}</h3>
-                <p className="text-sm text-gray-500">{falseNineContent[currentIndex].pubDate}</p>
+                <p className="text-sm text-gray-500">
+                  {
+                    // Parse the pubDate and format it to display only the date (without time)
+                    new Date(falseNineContent[currentIndex].pubDate).toLocaleDateString('en-GB', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                    })
+                  }
+                </p>
                 <p className="text-sm text-gray-500">Author: {falseNineContent[currentIndex].author}
                 <button 
                   className="text-gray-500 ml-2" 
@@ -793,14 +783,6 @@ export default function Demo() {
                     height={300} // Set height as the corresponding aspect ratio
                   />
                 )}
-{/*                 <a
-                  href={`${falseNineContent[0].link}?referrer=0x8b80755C441d355405CA7571443Bb9247B77Ec16`}
-                  target="_blank"
-                  rel="noopener noreferrer allow-popups"
-                  className="text-fontRed hover:underline"
-                >
-                  Subscribe to The False Nine
-                </a> */}
                 <div className="mt-4">
                   <Button onClick={handleSubscribeClick}>Subscribe (soon)</Button>
                 </div>
@@ -826,10 +808,18 @@ export default function Demo() {
                         }} className="flex-1 pr-4">
                           <div className="flex flex-col">
                             <h5 className="font-bold text-md text-notWhite">{post.title}</h5>
-                            <p className="text-sm text-gray-500">{post.pubDate}</p>
+                            <p className="text-sm text-gray-500">
+                              {
+                                // Parse the pubDate and format it to display only the date (without time)
+                                new Date(post.pubDate).toLocaleDateString('en-GB', {
+                                  year: 'numeric',
+                                  month: 'long',
+                                  day: 'numeric',
+                                })
+                              }
+                            </p>
                           </div>
                         </button>
-
                         {/* Right side: Image */}
                         <div className="w-36 h-24 overflow-hidden rounded-md ml-4">
                           {post.image && (
@@ -844,9 +834,9 @@ export default function Demo() {
                         </div>
                       </div>
                     ))}
+                    
                   </div>
                 </div>
-
               </div>        
             ) : (
               <div>No content available for The False Nine.</div>
