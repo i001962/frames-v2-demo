@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og";
 
-export const alt = "d33m";
+export const alt = "FC Footy Mini-App";
 export const size = {
   width: 600,
   height: 400,
