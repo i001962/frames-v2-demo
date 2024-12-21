@@ -1,22 +1,34 @@
 // components/FantasyTab.tsx
 import React, { useState, useEffect } from 'react';
-import FantasyRow from './FantasyRow'; // Import the FantasyRow component
-import { fetchFantasyData } from './utils/fetchFantasyData'; // Adjust the import path accordingly
+import FantasyRow from './FantasyRow';
+import { fetchFantasyData } from './utils/fetchFantasyData';
+
+interface FantasyEntry {
+  manager: string;
+  rank: number;  // Allow null for rank
+  total: number;  // Allow null for total
+  fav_team: string;
+  pfp: string;  // Allow null for pfp
+  team: {
+    name: string;
+    logo: string;
+  };
+}
+
 
 const FantasyTab = () => {
-  const [fantasyData, setFantasyData] = useState<unknown[]>([]); // Store fantasy data
-  const [loadingFantasy, setLoadingFantasy] = useState<boolean>(false); // Loading state
-  const [errorFantasy, setErrorFantasy] = useState<string | null>(null); // Error state
+  const [fantasyData, setFantasyData] = useState<FantasyEntry[]>([]); 
+  const [loadingFantasy, setLoadingFantasy] = useState<boolean>(false);
+  const [errorFantasy, setErrorFantasy] = useState<string | null>(null);
 
-  // Fetch fantasy data when the component mounts
   useEffect(() => {
     const fetchData = async () => {
       setLoadingFantasy(true);
       setErrorFantasy(null);
 
       try {
-        const data = await fetchFantasyData(); // Call the function to fetch data
-        setFantasyData(data); // Set the data into state
+        const data = await fetchFantasyData(); 
+        setFantasyData(data); 
       } catch (error) {
         if (error instanceof Error) {
           setErrorFantasy(error.message); // Set the error message
