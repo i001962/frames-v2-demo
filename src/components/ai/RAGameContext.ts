@@ -110,7 +110,7 @@ const RAGameContext = async (
         const gameInfo = summaryData.gameInfo;
         const standings = summaryData.standings;
         const prefixPrompt = {
-          prompt: `Provide a match preview for the upcoming match between ${competitors.slice(0, 3)} and ${competitors.slice(3, 6)}. Describe the expected match dynamics using future tense only, such as key players, anticipated strategies, and possible match outcomes. Do **not** use past tense like 'won', 'lost', or 'defeated' if the match clock has not yet started, so focus on the **future** and avoid making definitive claims about the result. Do not include any external links or markdown.`
+          prompt: `Provide a match preview for the upcoming match between ${competitors}. Describe the expected match dynamics using future tense only, such as key players, anticipated strategies, and possible match outcomes. Do **not** use past tense like 'won', 'lost', or 'defeated' if the match clock has not yet started, so focus on the **future** and avoid making definitive claims about the result. Do not include any external links or markdown.`
         };
 
         const jsonData = JSON.stringify({ prefixPrompt, summarizedEvents, gameInfo, standings });
