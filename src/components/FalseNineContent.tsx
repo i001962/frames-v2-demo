@@ -30,12 +30,12 @@ const FalseNineContent = () => {
         }));
         
         if (content.length === 0 || content.every(c => !c.content.trim())) {
-          setErrorTFN("No content available.");
+          // setErrorTFN("No content available."); // TODO: Toast solution needed
         } else {
           setFalseNineContent(content); // Set the fetched and formatted content
         }
       } catch (err) {
-        setErrorTFN("Failed to load content.");
+        // setErrorTFN("Failed to load content."); // TODO: Toast solution needed
         console.error('Error fetching or parsing RSS:', err);
       } finally {
       }
