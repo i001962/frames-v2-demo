@@ -10,19 +10,19 @@ const sportsData = [
       url: 'https://site.api.espn.com/apis/site/v2/sports/soccer/esp.1/scoreboard',
     },
     {
-      name: 'Bundesliga',
-      sportId: 'ger.1',
-      url: 'https://site.api.espn.com/apis/site/v2/sports/soccer/ger.1/scoreboard',
+        name: 'Ligue 1',
+        sportId: 'fra.1',
+        url: 'https://site.api.espn.com/apis/site/v2/sports/soccer/fra.1/scoreboard',
+    },
+    {
+        name: 'Bundesliga',
+        sportId: 'ger.1',
+        url: 'https://site.api.espn.com/apis/site/v2/sports/soccer/ger.1/scoreboard',
     },
     {
       name: 'Serie A',
       sportId: 'ita.1',
       url: 'https://site.api.espn.com/apis/site/v2/sports/soccer/ita.1/scoreboard',
-    },
-    {
-      name: 'Ligue 1',
-      sportId: 'fra.1',
-      url: 'https://site.api.espn.com/apis/site/v2/sports/soccer/fra.1/scoreboard',
     },
     {
         name: 'UCL',
