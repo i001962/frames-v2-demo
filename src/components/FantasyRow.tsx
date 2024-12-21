@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Image from 'next/image';
+import sdk from '@farcaster/frame-sdk';
 
 interface FantasyRowProps {
   entry: FantasyEntry; // Use the FantasyEntry type here
@@ -41,11 +42,11 @@ const FantasyRow: React.FC<FantasyRowProps> = ({ entry }) => {
     // Create the URL with both the team logo and the frame URL as embeds
     const url = `https://warpcast.com/~/compose?text=${encodedSummary}&channelKey=football&embeds[]=${encodeURIComponent(team.logo || '')}&embeds[]=${encodedFrameUrl}`;
     console.log(url);
-    // Open the cast URL in a new tab
-    window.open(url, '_blank', 'noopener noreferrer allow-popups');
+    sdk.actions.openUrl(url);  
+    
   };
 
-  // Only make the row clickable if there is a team logo
+  // Only make the row clickable if there is a team logo. Change this with new skd cast features
   const handleRowClick = team.logo ? () => {
     handleCastClick(); // Generate and open the cast URL
   } : undefined; // If no logo, do not attach the click handler
