@@ -44,6 +44,7 @@ const FantasyTab = () => {
     fetchData();
   }, []);
   
+  //@typescript-eslint/no-explicit-any
   const handleFetchedData = (data: any[]) => {
     const updatedData = data.map(item => ({
       ...item,
