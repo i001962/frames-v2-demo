@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import sendOpenAi from './sendOpenAi';
 
-const fillGameContext = async (sixCharacterString: string): Promise<any> => {
+const RAGameContext = async (sixCharacterString: string): Promise<any> => {
   const openAiApiKey = process.env.NEXT_PUBLIC_OPENAIKEY;
   ; // Make sure to use environment variables in production
   const prefix = "Clear the context history and start over with the following info:";
@@ -72,7 +72,7 @@ const fillGameContext = async (sixCharacterString: string): Promise<any> => {
         const gameInfo = summaryData.gameInfo;
         const standings = summaryData.standings;
         const prefixPrompt = {
-          prompt: `Provide a match preview for the upcoming match between ${sixCharacterString.slice(0, 3)} and ${sixCharacterString.slice(3, 6)}. Describe the expected match dynamics using future tense only, such as key players, anticipated strategies, and possible match outcomes. Do **not** use past tense like 'won', 'lost', or 'defeated'. The match has not yet started, so focus on the **future** and avoid making definitive claims about the result. Do not include any external links or markdown.`
+          prompt: `Provide a match preview for the upcoming match between ${sixCharacterString.slice(0, 3)} and ${sixCharacterString.slice(3, 6)}. Describe the expected match dynamics using future tense only, such as key players, anticipated strategies, and possible match outcomes. Do **not** use past tense like 'won', 'lost', or 'defeated' if the match clock has not yet started, so focus on the **future** and avoid making definitive claims about the result. Do not include any external links or markdown.`
         };
         const jsonData = JSON.stringify({ prefixPrompt, summarizedEvents, gameInfo, standings });
         // messageHistory = manageContext(messageHistory, jsonData, maxTokens);
@@ -88,7 +88,7 @@ const fillGameContext = async (sixCharacterString: string): Promise<any> => {
     }
   }
 
-  const tournaments = ["eng.1"];
+  const tournaments = ["eng.1", "eng.2"];
   let matchingEvent = null;
 
   for (const tournament of tournaments) {
@@ -108,4 +108,4 @@ const fillGameContext = async (sixCharacterString: string): Promise<any> => {
   return matchingEvent;  // Ensure matchingEvent is returned if found
 };
 
-export default fillGameContext;
+export default RAGameContext;
