@@ -156,8 +156,12 @@ const EventCard: React.FC<EventCardProps> = ({ event, sportId }) => {
     try {
       console.log('Fetching game context...', sportId, event.id );
       const data = await RAGameContext(event.id, sportId, competitorsLong);
-
-      setGameContext(data);
+      console.log('Game context:', data);
+      if (data && typeof data === 'string') {
+        setGameContext(data); // Set only the 'text' from AiSummary
+      } else {
+        setGameContext('Failed to fetch AI context.');
+      }
     } catch (error) {
       setGameContext('Failed to fetch game context. Ping @kmacb.eth.'); // TODO: Handle error
       console.log('Error fetching game context let kmacb.eth:', error);
