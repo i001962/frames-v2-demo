@@ -16,6 +16,7 @@ interface FantasyEntry {
     name: string;
     logo: string;
   };
+  pfp: string;
 }
 
 const FantasyRow: React.FC<FantasyRowProps> = ({ entry }) => {
