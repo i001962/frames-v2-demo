@@ -7,16 +7,19 @@ interface FantasyRowProps {
   entry: FantasyEntry; // Use the FantasyEntry type here
 }
 
+// Define the FantasyEntry type
 interface FantasyEntry {
-  manager: string;
-  rank: number;
-  total: number;
-  fav_team: string;
+  pfp: string | null;
   team: {
-    name: string;
-    logo: string;
+    name: string | null;
+    logo: string | null;
   };
-  pfp: string;
+  manager: string;
+  entry_name: string | null;
+  rank: number | null;
+  last_name: string | null;
+  fav_team: number | null;
+  total: number | null;
 }
 
 const FantasyRow: React.FC<FantasyRowProps> = ({ entry }) => {
