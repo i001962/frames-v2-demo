@@ -1,12 +1,38 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import React, { useState } from 'react';
 import Image from 'next/image';
 import { Button } from '~/components/ui/Button'; // Assuming Button component is imported
 import RAGameContext from './ai/RAGameContext';  // Import the function to fetch game context
 
+// Define the structure of event
+interface Event {
+  id: string;
+  shortName: string;
+  name: string;
+  date: string;
+  status: {
+    displayClock: string;
+    type: {
+      detail: string;
+    };
+  };
+  competitions: Array<{
+    competitors: Array<{
+      team: {
+        logo: string;
+      };
+      score: number;
+    }>;
+    details: Array<{
+      athletesInvolved: Array<{ displayName: string }>;
+      type: { text: string };
+      clock: { displayValue: string };
+      team: { id: string };
+    }>;
+  }>;
+}
+
 interface EventCardProps {
-  event: unknown;
+  event: Event; // Use the Event type here
 }
 
 const EventCard: React.FC<EventCardProps> = ({ event }) => {
