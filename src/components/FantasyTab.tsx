@@ -25,24 +25,42 @@ const FantasyTab = () => {
     const fetchData = async () => {
       setLoadingFantasy(true);
       setErrorFantasy(null);
-
+  
       try {
-        const data = await fetchFantasyData(); 
-        setFantasyData(data); 
+        const data = await fetchFantasyData();
+        handleFetchedData(data); // Process and set the data
       } catch (error) {
         if (error instanceof Error) {
-          setErrorFantasy(error.message); // Set the error message
+          setErrorFantasy(error.message);
         } else {
-          setErrorFantasy('An unknown error occurred'); // Fallback error message
+          setErrorFantasy('An unknown error occurred');
         }
       } finally {
-        setLoadingFantasy(false); // Reset loading state
+        setLoadingFantasy(false);
       }
     };
-
+  
     fetchData();
-  }, []); // Empty dependency array means this will run once when the component mounts
-
+  }, []);
+  
+  const handleFetchedData = (data: any[]) => {
+    const formattedData = data.map((item) => ({
+      pfp: item.pfp,
+      team: {
+        name: item.team.name ?? '', // Replace null with empty string
+        logo: item.team.logo ?? '',
+      },
+      manager: item.manager,
+      entry_name: item.entry_name ?? '',
+      rank: item.rank ?? 0,  // Replace null with 0
+      last_name: item.last_name ?? '',
+      fav_team: item.fav_team ?? 0, // Replace null with 0
+      total: item.total ?? 0,  // Replace null with 0
+    }));
+  
+    setFantasyData(formattedData); // Now the data will match the FantasyEntry type
+  };
+  
   return (
     <div>
       <h2 className="font-2xl text-notWhite font-bold mb-4">Table</h2>
