@@ -65,7 +65,7 @@ const FantasyRow: React.FC<FantasyRowProps> = ({ entry }) => {
         />
         {team.logo && team.logo !== '/defifa_spinner.gif' && (
           <Image
-            src={team.logo}
+            src={team.logo || '/default-team-logo.png'}  // Provide fallback if logo is null
             alt="Team Logo"
             className="rounded-full w-5 h-5 absolute top-0 left-7"
             width={15}
