@@ -19,6 +19,7 @@ interface Detail {
 }
 
 interface EventCardProps {
+  sportId: string;
   event: {
     id: string;
     shortName: string;
@@ -47,7 +48,7 @@ interface EventCardProps {
 interface SelectedMatch {
   homeTeam: string;
   awayTeam: string;
-  competitors: string;
+  competitorsLong: string;
   homeLogo: string;
   awayLogo: string;
   homeScore: number;
@@ -56,15 +57,17 @@ interface SelectedMatch {
   eventStarted: boolean;
 }
 
-const EventCard: React.FC<EventCardProps> = ({ event }) => {
+const EventCard: React.FC<EventCardProps> = ({ event, sportId }) => {
   const [selectedMatch, setSelectedMatch] = useState<SelectedMatch | null>(null);
   const [gameContext, setGameContext] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [showDetails, setShowDetails] = useState(false); // State to toggle details visibility
 
-  const homeTeam = event.shortName.split('@')[1].trim().toLowerCase();
-  const awayTeam = event.shortName.split('@')[0].trim().toLowerCase();
-  const competitors = event.name;
+  const competitorsLong = event.name; // Remove '@' and spaces
+  const homeTeam = event.shortName.slice(6, 9);
+  const awayTeam = event.shortName.slice(0, 3);
+  console.log('Competitors:', homeTeam, awayTeam);
+  console.log('Competitors:', event.shortName);
   const eventStarted = new Date() >= new Date(event.date);
   const clock = event.status.displayClock + ' ' + event.status.type.detail || '00:00';
 
@@ -138,7 +141,7 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
     setSelectedMatch({
       homeTeam,
       awayTeam,
-      competitors,
+      competitorsLong,
       homeLogo: homeTeamLogo,
       awayLogo: awayTeamLogo,
       homeScore,
@@ -146,12 +149,14 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
       clock,
       eventStarted,
     });
-
+    console.log('Selected match:', selectedMatch);
     // Fetch game context when match is selected
     setLoading(true);
-    const eventId = `${homeTeam}${awayTeam}`;
+    
     try {
-      const data = await RAGameContext(eventId); // Fetch the game context data
+      console.log('Fetching game context...', sportId, event.id );
+      const data = await RAGameContext(event.id, sportId, competitorsLong);
+
       setGameContext(data);
     } catch (error) {
       setGameContext('Failed to fetch game context. Ping @kmacb.eth.'); // TODO: Handle error
@@ -174,8 +179,8 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
   // UseCallback hook for openWarpcastUrl to handle URL opening
   const openWarpcastUrl = useCallback(() => {
     if (selectedMatch) {
-      const { competitors, homeTeam, awayTeam, homeScore, awayScore, clock, homeLogo, awayLogo, eventStarted } = selectedMatch;
-      const matchSummary = `${competitors}\n${homeTeam.toUpperCase()} ${eventStarted ? homeScore : ''} - ${eventStarted ? awayScore : ''} ${awayTeam.toUpperCase()}\n${eventStarted ? `${clock}` : `Kickoff: ${clock}`}\n\nUsing the FC Footy mini-app https://d33m-frames-v2.vercel.app cc @kmacb.eth Go ${homeTeam}`;
+      const { competitorsLong, homeTeam, awayTeam, homeScore, awayScore, clock, homeLogo, awayLogo, eventStarted } = selectedMatch;
+      const matchSummary = `${competitorsLong}\n${homeTeam} ${eventStarted ? homeScore : ''} - ${eventStarted ? awayScore : ''} ${awayTeam.toUpperCase()}\n${eventStarted ? `${clock}` : `Kickoff: ${clock}`}\n\nUsing the FC Footy mini-app https://d33m-frames-v2.vercel.app cc @kmacb.eth`;
       const encodedSummary = encodeURIComponent(matchSummary);
       const url = `https://warpcast.com/~/compose?text=${encodedSummary}&channelKey=football&embeds[]=${homeLogo}&embeds[]=${awayLogo}`;
       sdk.actions.openUrl(url);  // This is where you replace window.open with sdk.actions.openUrl
@@ -227,9 +232,11 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
           </span>
         </button>
       </div>
-      {showDetails && eventStarted && selectedMatch && gameContext && (
-        <div className="mt-2">
-          <h4 className="text-lightPurple font-semibold">Key Moments:</h4>
+      
+      {/* Conditional rendering for key moments and game context */}
+      {showDetails && eventStarted && (
+        <div className="mt-2 mt-2">
+          <h4 className="text-notWhite font-semibold mb-2">Key Moments:</h4>
           {keyMoments.length > 0 ? (
             <div className="space-y-1">{keyMoments}</div>
           ) : (
@@ -237,34 +244,25 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
           )}
         </div>
       )}
-      
-      {/* Match Summary */}
-      {showDetails && (
+
+      {showDetails && gameContext && (
         <div className="mt-4 text-lightPurple bg-purplePanel">
-          {gameContext ? (
-            <div className="bg-purplePanel text-lightPurple rounded-lg">
-              <h2 className="font-2xl text-notWhite font-bold mb-4">
-                <button onClick={readMatchSummary}>
-                  {selectedMatch && selectedMatch.eventStarted
-                    ? `[AI] Match Summary 🗣️🎧1.5x`
-                    : `[AI] Match Preview 🗣️🎧1.5x`}
-                </button>
-              </h2>
-              <pre className="text-sm whitespace-pre-wrap break-words">{gameContext}</pre>
-              <div className="mt-4">
-                <Button onClick={castSummary}>Cast</Button>
-              </div>
-            </div>
-          ) : loading ? (
-            <div>Loading match context...</div>
-          ) : (
-            <div></div>
-          )}
+          <h2 className="font-2xl text-notWhite font-bold mb-4">
+            <button onClick={readMatchSummary}>
+              {eventStarted
+                ? `[AI] Match Summary 🗣️🎧1.5x`
+                : `[AI] Match Preview 🗣️🎧1.5x`}
+            </button>
+          </h2>
+          <pre className="text-sm whitespace-pre-wrap break-words">{gameContext}</pre>
+          <div className="mt-2 mb-4">
+            <Button onClick={castSummary}>Cast</Button>
+          </div>
         </div>
       )}
+      {loading && <div className='text-fontRed'>Reloading match context...</div>}
     </div>
   );
-  
 };
 
 export default EventCard;
