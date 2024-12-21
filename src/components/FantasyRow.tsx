@@ -4,7 +4,18 @@ import React from 'react';
 import Image from 'next/image';
 
 interface FantasyRowProps {
-  entry: unknown;
+  entry: FantasyEntry; // Use the FantasyEntry type here
+}
+
+interface FantasyEntry {
+  manager: string;
+  rank: number;
+  total: number;
+  fav_team: string;
+  team: {
+    name: string;
+    logo: string;
+  };
 }
 
 const FantasyRow: React.FC<FantasyRowProps> = ({ entry }) => {
