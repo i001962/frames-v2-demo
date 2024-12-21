@@ -42,7 +42,7 @@ const FantasyRow: React.FC<FantasyRowProps> = ({ entry }) => {
     const url = `https://warpcast.com/~/compose?text=${encodedSummary}&channelKey=football&embeds[]=${encodeURIComponent(team.logo || '')}&embeds[]=${encodedFrameUrl}`;
     console.log(url);
     // Open the cast URL in a new tab
-    window.open(url, '_blank', 'noopener noreferrer');
+    window.open(url, '_blank', 'noopener noreferrer allow-popups');
   };
 
   // Only make the row clickable if there is a team logo
