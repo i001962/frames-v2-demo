@@ -40,10 +40,7 @@ export default function Main() {
 
   return (
     <div className="w-[400px] mx-auto py-4 px-2">
-      {/* Tab Navigation */}
       <TabNavigation selectedTab={selectedTab} setSelectedTab={setSelectedTab} />
-
-      {/* Tab Content */}
       <div className="bg-darkPurple p-4 rounded-md text-white">
         {selectedTab === 'matches' && 
         <MatchesTab />}

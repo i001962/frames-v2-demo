@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import Image from 'next/image';
 import { Button } from '~/components/ui/Button'; // Assuming Button component is imported
 import RAGameContext from './ai/RAGameContext';  // Import the function to fetch game context
+import sdk from "@farcaster/frame-sdk";
 
 // Define the structure of detail
 interface Detail {
@@ -170,14 +171,19 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
     }
   };
 
-  const castSummary = () => {
+  // UseCallback hook for openWarpcastUrl to handle URL opening
+  const openWarpcastUrl = useCallback(() => {
     if (selectedMatch) {
       const { competitors, homeTeam, awayTeam, homeScore, awayScore, clock, homeLogo, awayLogo, eventStarted } = selectedMatch;
       const matchSummary = `${competitors}\n${homeTeam.toUpperCase()} ${eventStarted ? homeScore : ''} - ${eventStarted ? awayScore : ''} ${awayTeam.toUpperCase()}\n${eventStarted ? `${clock}` : `Kickoff: ${clock}`}\n\nUsing the FC Footy mini-app https://d33m-frames-v2.vercel.app cc @kmacb.eth Go ${homeTeam}`;
       const encodedSummary = encodeURIComponent(matchSummary);
       const url = `https://warpcast.com/~/compose?text=${encodedSummary}&channelKey=football&embeds[]=${homeLogo}&embeds[]=${awayLogo}`;
-      window.open(url, '_blank allow-popups', 'noopener noreferrer');
+      sdk.actions.openUrl(url);  // This is where you replace window.open with sdk.actions.openUrl
     }
+  }, [selectedMatch]);
+
+  const castSummary = () => {
+    openWarpcastUrl();
   };
 
   // Toggle visibility of details when clicking the row
@@ -188,12 +194,11 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
   return (
     <div key={event.id} className="sidebar">
       <div className="hover:bg-deepPink cursor-pointer border border-darkPurple">
-        <button onClick={handleSelectMatch} className="dropdown-button cursor-pointer flex items-center mb-2 w-full">
+        <button onClick={() => { handleSelectMatch(); toggleDetails(); }} className="dropdown-button cursor-pointer flex items-center mb-2 w-full">
           {/* Toggle Details */}
-          <div onClick={toggleDetails} className="cursor-pointer text-lightPurple mr-4">
-            {showDetails ? "▲" : "▼"}
-          </div>
-  
+          <div className="cursor-pointer text-lightPurple mr-4">
+            {showDetails ? "▼" : "▷"}
+          </div>      
           {/* Match Information */}
           <span className="flex justify-center space-x-4 ml-2 mr-2">
             <div className="flex flex-col items-center space-y-1">
@@ -209,7 +214,7 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
               ) : (
                 <>
                   <span className="flex flex-col items-center">
-                    <span> kickoff </span>
+                    <span>Kickoff:</span>
                     <span className="text-sm text-lightPurple">{new Date(event.date).toLocaleString('en-GB', { weekday: 'short', hour: '2-digit', minute: '2-digit' })}</span>
                   </span>
                 </>
