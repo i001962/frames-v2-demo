@@ -156,7 +156,6 @@ const EventCard: React.FC<EventCardProps> = ({ event, sportId }) => {
     try {
       console.log('Fetching game context...', sportId, event.id );
       const data = await RAGameContext(event.id, sportId, competitorsLong);
-      console.log('Game context:', data);
       if (data && typeof data === 'string') {
         setGameContext(data); // Set only the 'text' from AiSummary
       } else {
