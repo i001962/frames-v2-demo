@@ -1,5 +1,3 @@
-// utils/fetchFantasyData.ts
-
 import { createClient } from "@supabase/supabase-js";
 import axios from "axios";
 import { Database } from '../../../supabase';
@@ -12,9 +10,24 @@ const supabase = createClient<Database>(
   supabaseApiKey
 );
 
-export const fetchFantasyData = async () => {
+// Define FantasyEntry type to match the expected data structure
+interface FantasyEntry {
+  pfp: string | null;
+  team: {
+    name: string | null;
+    logo: string | null;
+  };
+  manager: string;
+  entry_name: string | null;
+  rank: number | null;
+  last_name: string | null;
+  fav_team: number | null;
+  total: number | null;
+}
+
+export const fetchFantasyData = async (): Promise<FantasyEntry[]> => {
   try {
-    // Query the 'standings' table for 'entry_name', 'rank', 'last_name', and 'fav_team'
+    // Query Supabase 'standings' table
     const { data, error } = await supabase
       .from('standings')
       .select('entry_name, rank, last_name, fav_team, total');
@@ -23,19 +36,18 @@ export const fetchFantasyData = async () => {
       throw error;
     }
 
-    // Step 1: Concurrently fetch profile images for each entry with valid fid
+    // Step 1: Fetch additional data (profile, team info) concurrently
     const updatedFantasyData = await Promise.all(
-      data.map(async (entry) => {
+      data.map(async (entry: { entry_name: string | null; rank: number | null; last_name: string | null; fav_team: number | null; total: number | null; }) => {
         const { last_name, fav_team } = entry;
 
-        // Ensure last_name is not null and is a valid number (fid)
+        // Handle last_name being a valid number (fid)
         if (last_name && !isNaN(Number(last_name))) {
-          const fid = parseInt(last_name, 10); // Ensure fid is an integer
-          // Check if fid is a valid integer
+          const fid = parseInt(last_name, 10);
           if (Number.isInteger(fid)) {
             const server = "https://hubs.airstack.xyz";
             try {
-              // Make the API call using the fid
+              // Fetch user data by fid
               const response = await axios.get(`${server}/v1/userDataByFid?fid=${fid}`, {
                 headers: {
                   "Content-Type": "application/json",
@@ -43,7 +55,7 @@ export const fetchFantasyData = async () => {
                 }
               });
 
-              // Extract pfp URL from the response
+              // Extract profile image and username from the response
               let pfpUrl = null;
               let username = null;
               const messages = response.data.messages || [];
@@ -55,15 +67,15 @@ export const fetchFantasyData = async () => {
                   username = message.data.userDataBody.value;
                 }
               }
-              
-              // Step 2: Fetch team info from the 'teams' table based on fav_team
+
+              // Step 2: Fetch team info based on fav_team
               let teamInfo = null;
               if (fav_team) {
                 const { data: teamData, error: teamError } = await supabase
                   .from('teams')
                   .select('name, logo')
                   .eq('id', fav_team)
-                  .single(); // Assume fav_team maps to one team only
+                  .single();
 
                 if (teamError) {
                   console.error("Error fetching team data", teamError);
@@ -72,31 +84,36 @@ export const fetchFantasyData = async () => {
                 }
               }
 
-              // If no team info, use a default team logo (defifa_spinner.gif)
+              // Fallback to default values if no team data is found
               if (!teamInfo) {
                 teamInfo = { name: 'N/A', logo: '/defifa_spinner.gif' };
               }
 
-              // Return updated entry with pfpUrl and teamInfo
+              // Return updated entry with profile, team info
               return {
-                ...entry, 
-                pfp: pfpUrl || '/defifa_spinner.gif', // Use a fallback pfp if not found
-                team: teamInfo, 
-                manager: username || 'anon', 
+                ...entry,
+                pfp: pfpUrl || '/defifa_spinner.gif', // Ensure pfp has a fallback
+                team: teamInfo, // Ensure team info is always provided
+                manager: username || 'anon', // Ensure manager has a fallback
               };
             } catch (e) {
-              console.error("Error fetching data from API", e);
-              return { ...entry, pfp: '/defifa_spinner.gif' }; // Fallback on error
+              console.error("Error fetching user data", e);
+              return { ...entry, pfp: '/defifa_spinner.gif', team: { name: 'N/A', logo: '/defifa_spinner.gif' }, manager: 'FID not set 🤦🏽‍♂️' }; // Fallback if error occurs
             }
           }
         }
 
-        // Return the entry as-is if no valid fid or last_name
-        return { ...entry, pfp: '/defifa_spinner.gif', team: { name: 'N/A', logo: '/defifa_spinner.gif' }, manager: 'FID not set 🤦🏽‍♂️' };
+        // Return entry as-is if no valid fid or last_name
+        return { 
+          ...entry, 
+          pfp: '/defifa_spinner.gif', 
+          team: { name: 'N/A', logo: '/defifa_spinner.gif' },
+          manager: 'FID not set 🤦🏽‍♂️' 
+        };
       })
     );
 
-    return updatedFantasyData;
+    return updatedFantasyData; // Return the updated data array
   } catch (err) {
     console.error("Error fetching fantasy data:", err);
     throw new Error('Failed to fetch fantasy data');
