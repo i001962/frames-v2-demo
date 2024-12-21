@@ -28,6 +28,7 @@ const FantasyTab = () => {
   
       try {
         const data = await fetchFantasyData();
+        // eslint-disable-next-line 
         handleFetchedData(data); // Process and set the data
       } catch (error) {
         if (error instanceof Error) {
@@ -44,21 +45,11 @@ const FantasyTab = () => {
   }, []);
   
   const handleFetchedData = (data: any[]) => {
-    const formattedData = data.map((item) => ({
-      pfp: item.pfp,
-      team: {
-        name: item.team.name ?? '', // Replace null with empty string
-        logo: item.team.logo ?? '',
-      },
-      manager: item.manager,
-      entry_name: item.entry_name ?? '',
-      rank: item.rank ?? 0,  // Replace null with 0
-      last_name: item.last_name ?? '',
-      fav_team: item.fav_team ?? 0, // Replace null with 0
-      total: item.total ?? 0,  // Replace null with 0
+    const updatedData = data.map(item => ({
+      ...item,
+      rank: item.rank ?? 0, // Replace null rank with a default value (e.g., 0)
     }));
-  
-    setFantasyData(formattedData); // Now the data will match the FantasyEntry type
+    setFantasyData(updatedData); // Set the updated data
   };
   
   return (
