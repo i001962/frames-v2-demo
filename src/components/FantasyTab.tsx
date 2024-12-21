@@ -1,58 +1,59 @@
-// components/FantasyTab.tsx
 import React, { useState, useEffect } from 'react';
-import FantasyRow from './FantasyRow';
-import { fetchFantasyData } from './utils/fetchFantasyData';
+import FantasyRow from './FantasyRow'; // Import the FantasyRow component
+import { fetchFantasyData } from './utils/fetchFantasyData'; // Adjust the import path accordingly
 
+// Define the FantasyEntry type
 interface FantasyEntry {
-  manager: string;
-  rank: number;  // Allow null for rank
-  total: number;  // Allow null for total
-  fav_team: string;
-  pfp: string;  // Allow null for pfp
+  pfp: string | null;
   team: {
-    name: string;
-    logo: string;
+    name: string | null;
+    logo: string | null;
   };
+  manager: string;
+  entry_name: string | null;
+  rank: number | null;
+  last_name: string | null;
+  fav_team: number | null;
+  total: number | null;
 }
 
-
 const FantasyTab = () => {
-  const [fantasyData, setFantasyData] = useState<FantasyEntry[]>([]); 
-  const [loadingFantasy, setLoadingFantasy] = useState<boolean>(false);
-  const [errorFantasy, setErrorFantasy] = useState<string | null>(null);
+  const [fantasyData, setFantasyData] = useState<FantasyEntry[]>([]); // Store fantasy data
+  const [loadingFantasy, setLoadingFantasy] = useState<boolean>(false); // Loading state
+  const [errorFantasy, setErrorFantasy] = useState<string | null>(null); // Error state
 
+  // Fetch fantasy data when the component mounts
   useEffect(() => {
     const fetchData = async () => {
       setLoadingFantasy(true);
       setErrorFantasy(null);
-  
+
       try {
-        const data = await fetchFantasyData();
-        // eslint-disable-next-line 
+        const data = await fetchFantasyData(); // Call the function to fetch data
         handleFetchedData(data); // Process and set the data
       } catch (error) {
         if (error instanceof Error) {
-          setErrorFantasy(error.message);
+          setErrorFantasy(error.message); // Set the error message
         } else {
-          setErrorFantasy('An unknown error occurred');
+          setErrorFantasy('An unknown error occurred'); // Fallback error message
         }
       } finally {
-        setLoadingFantasy(false);
+        setLoadingFantasy(false); // Reset loading state
       }
     };
-  
+
     fetchData();
-  }, []);
-  
-  //@typescript-eslint/no-explicit-any
-  const handleFetchedData = (data: any[]) => {
+  }, []); // Empty dependency array means this will run once when the component mounts
+
+  // Handle the fetched data and update state
+  const handleFetchedData = (data: FantasyEntry[]) => {
     const updatedData = data.map(item => ({
       ...item,
       rank: item.rank ?? 0, // Replace null rank with a default value (e.g., 0)
     }));
     setFantasyData(updatedData); // Set the updated data
   };
-  
+
   return (
     <div>
       <h2 className="font-2xl text-notWhite font-bold mb-4">Table</h2>
