@@ -33,6 +33,7 @@ interface EventCardProps {
       competitors: {
         team: {
           logo: string;
+          id: string;
         };
         score: number;
       }[];
