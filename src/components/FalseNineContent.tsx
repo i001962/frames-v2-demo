@@ -1,11 +1,22 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { Button } from '~/components/ui/Button';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useReadTFN } from './utils/readTFN'; // Adjust import path if necessary
 
+interface FalseNineContentItem {
+  title: string;
+  link: string;
+  pubDate: string;
+  content: string;
+  author: string;
+  image: string;
+}
+
 const FalseNineContent = () => {
-  const [falseNineContent, setFalseNineContent] = useState<unknown[]>([]);
+  const [falseNineContent, setFalseNineContent] = useState<FalseNineContentItem[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0); // Track current post index
   const [isReading, setIsReading] = useState(false); // Track if speech is reading
   const [pauseAt, setPauseAt] = useState(0); // Track the position when paused
