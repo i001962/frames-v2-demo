@@ -62,7 +62,7 @@ const RAGameContext = async (
   eventId: string,
   tournament: string,
   competitors: string
-): Promise<AiSummary | null> => {
+): Promise<string | null> => {
   const openAiApiKey = process.env.NEXT_PUBLIC_OPENAIKEY;
   const prefix = "Clear the context history and start over with the following info:";
 
@@ -70,7 +70,7 @@ const RAGameContext = async (
     eventId: string,
     tournament: string,
     competitors: string
-  ): Promise<AiSummary | null> {
+  ): Promise<string | null> {
     const scoreboardUrl = `https://site.api.espn.com/apis/site/v2/sports/soccer/${tournament}/scoreboard`;
     const summaryUrl = (eventId: string) => `https://site.api.espn.com/apis/site/v2/sports/soccer/${tournament}/summary?event=${eventId}`;
     let summarizedEvents: AiSummary[] = [];
@@ -97,7 +97,7 @@ const RAGameContext = async (
         // If no key events are found, load a default prompt
         if (!summaryData.keyEvents || summaryData.keyEvents.length === 0) {
           summarizedEvents = [{
-            text: `Provide a match preview for the upcoming match between ${competitors.slice(0, 3)} and ${competitors.slice(3, 6)}. Use future tense to describe what is expected to happen, such as key players to watch, possible match dynamics, and any relevant statistics or history. Do not speculate on a winner or mention any results, and avoid using past tense (e.g., "won", "lost"). Focus solely on the upcoming match and do not include any external links.`
+            text: `Provide a match preview for the upcoming match between ${competitors}. Use future tense to describe what is expected to happen, such as key players to watch, possible match dynamics, and any relevant statistics or history. Do not speculate on a winner or mention any results, and avoid using past tense (e.g., "won", "lost"). Focus solely on the upcoming match and do not include any external links.`
           }];
         } else {
           summarizedEvents = summaryData.keyEvents.map((event: KeyEvent) => ({
@@ -114,9 +114,9 @@ const RAGameContext = async (
         };
 
         const jsonData = JSON.stringify({ prefixPrompt, summarizedEvents, gameInfo, standings });
-        const aiSummary = await sendOpenAi(jsonData, openAiApiKey || "");
+        const aiSummaryText = await sendOpenAi(jsonData, openAiApiKey || "");
 
-        return aiSummary;  // Return AI-generated summary
+        return aiSummaryText;  // Return AI-generated summary
       }
 
       return null;  // If no matching event is found, return null
