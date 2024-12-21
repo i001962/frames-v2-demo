@@ -3,40 +3,59 @@ import Image from 'next/image';
 import { Button } from '~/components/ui/Button'; // Assuming Button component is imported
 import RAGameContext from './ai/RAGameContext';  // Import the function to fetch game context
 
-// Define the structure of event
-interface Event {
-  id: string;
-  shortName: string;
-  name: string;
-  date: string;
-  status: {
-    displayClock: string;
-    type: {
-      detail: string;
-    };
+// Define the structure of detail
+interface Detail {
+  athletesInvolved: Array<{ displayName: string }>;
+  type: {
+    text: string;
   };
-  competitions: Array<{
-    competitors: Array<{
-      team: {
-        logo: string;
-      };
-      score: number;
-    }>;
-    details: Array<{
-      athletesInvolved: Array<{ displayName: string }>;
-      type: { text: string };
-      clock: { displayValue: string };
-      team: { id: string };
-    }>;
-  }>;
+  clock: {
+    displayValue: string;
+  };
+  team: {
+    id: string;
+  };
 }
 
 interface EventCardProps {
-  event: Event; // Use the Event type here
+  event: {
+    id: string;
+    shortName: string;
+    name: string;
+    date: string;
+    status: {
+      displayClock: string;
+      type: {
+        detail: string;
+      };
+    };
+    competitions: {
+      competitors: {
+        team: {
+          logo: string;
+        };
+        score: number;
+      }[];
+      details: Detail[];
+    }[];
+  };
+}
+
+// Define the selected match type
+interface SelectedMatch {
+  homeTeam: string;
+  awayTeam: string;
+  competitors: string;
+  homeLogo: string;
+  awayLogo: string;
+  homeScore: number;
+  awayScore: number;
+  clock: string;
+  eventStarted: boolean;
 }
 
 const EventCard: React.FC<EventCardProps> = ({ event }) => {
-  const [selectedMatch, setSelectedMatch] = useState<unknown>(null);
+  const [selectedMatch, setSelectedMatch] = useState<SelectedMatch | null>(null);
   const [gameContext, setGameContext] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [showDetails, setShowDetails] = useState(false); // State to toggle details visibility
@@ -52,63 +71,66 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
   const homeScore = event.competitions[0]?.competitors[0]?.score;
   const awayScore = event.competitions[0]?.competitors[1]?.score;
 
-  const keyMoments = event.competitions[0]?.details.reduce((acc: unknown[], detail: unknown) => {
-    const playerName = detail.athletesInvolved && detail.athletesInvolved.length > 0
-      ? detail.athletesInvolved[0]?.displayName || 'Coaching staff'
-      : 'Coaching staff';
+  // keyMoments is a mapped array of event details
+  const keyMoments = event.competitions[0]?.details
+    .reduce((acc: { action: string; logo: string; playerName: string; times: string[] }[], detail: Detail) => {
+      const playerName = detail.athletesInvolved && detail.athletesInvolved.length > 0
+        ? detail.athletesInvolved[0]?.displayName || 'Coaching staff'
+        : 'Coaching staff';
 
-    const action = detail.type.text;
-    const time = detail.clock.displayValue || '00:00';
-    const teamId = detail.team.id;
+      const action = detail.type.text;
+      const time = detail.clock.displayValue || '00:00';
+      const teamId = detail.team.id;
 
-    let teamLogo = '';
-    if (teamId === event.competitions[0]?.competitors[0]?.team.id) {
-      teamLogo = homeTeamLogo;
-    } else {
-      teamLogo = awayTeamLogo;
-    }
+      let teamLogo = '';
+      if (teamId === event.competitions[0]?.competitors[0]?.team.id) {
+        teamLogo = homeTeamLogo;
+      } else {
+        teamLogo = awayTeamLogo;
+      }
 
-    if (action === "Goal" || action === "Goal - Header" || action === "Penalty - Scored" || action === "Goal - Free-kick" || action === "Own Goal") {
-      const existingGoal = acc.find(item => item.playerName === playerName);
-      if (existingGoal) {
-        existingGoal.times.push(time);
+      if (action === "Goal" || action === "Goal - Header" || action === "Penalty - Scored" || action === "Goal - Free-kick" || action === "Own Goal") {
+        const existingGoal = acc.find(item => item.playerName === playerName);
+        if (existingGoal) {
+          existingGoal.times.push(time);
+        } else {
+          acc.push({
+            playerName,
+            times: [time],
+            logo: teamLogo,
+            action: action === "Own Goal" ? "🔴" : "⚽️"
+          });
+        }
       } else {
         acc.push({
           playerName,
           times: [time],
+          action: action === "Yellow Card" ? "🟨" : action === "Red Card" ? "🟥" : action,
           logo: teamLogo,
-          action: action === "Own Goal" ? "🔴" : "⚽️"
         });
       }
-    } else {
-      acc.push({
-        playerName,
-        times: [time],
-        action: action === "Yellow Card" ? "🟨" : action === "Red Card" ? "🟥" : action,
-        logo: teamLogo,
-      });
-    }
 
-    return acc;
-  }, []).map((moment: unknown, index: number) => {
-    const formattedAction = moment.action || "⚽️";
-    const playerNameClass = formattedAction === "🔴" ? "text-fontRed" : "text-lightPurple";
+      return acc;
+    }, [])
+    .map((moment, index) => {
+      const formattedAction = moment.action || "⚽️";
+      const playerNameClass = formattedAction === "🔴" ? "text-fontRed" : "text-lightPurple";
 
-    return (
-      <div key={index} className="text-sm text-lightPurple flex items-center">
-        <span className="mr-2 font-bold">{formattedAction}</span>
-        <Image
-          src={moment.logo || '/assets/defifa_spinner.gif'}
-          alt="Team Logo"
-          className="w-6 h-6 mr-2"
-          width={15}
-          height={15}
-        />
-        <span className={playerNameClass}>{moment.playerName}</span>
-        <span className="text-xs ml-1">{moment.times.join(' / ')}</span>
-      </div>
-    );
-  });
+      return (
+        <div key={index} className="text-sm text-lightPurple flex items-center">
+          <span className="mr-2 font-bold">{formattedAction}</span>
+          <Image
+            src={moment.logo || '/assets/defifa_spinner.gif'}
+            alt="Team Logo"
+            className="w-6 h-6 mr-2"
+            width={15}
+            height={15}
+          />
+          <span className={playerNameClass}>{moment.playerName}</span>
+          <span className="text-xs ml-1">{moment.times.join(' / ')}</span>
+        </div>
+      );
+    });
 
   const handleSelectMatch = async () => {
     setSelectedMatch({
@@ -199,8 +221,6 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
           </span>
         </button>
       </div>
-  
-      {/* Display Key Moments only if match is selected */}
       {showDetails && eventStarted && selectedMatch && gameContext && (
         <div className="mt-2">
           <h4 className="text-lightPurple font-semibold">Key Moments:</h4>
