@@ -94,7 +94,7 @@ const EventCard: React.FC<EventCardProps> = ({ event, sportId }) => {
         teamLogo = awayTeamLogo;
       }
 
-      if (action === "Goal" || action === "Goal - Header" || action === "Penalty - Scored" || action === "Goal - Free-kick" || action === "Own Goal") {
+      if (action === "Goal" || action === "Goal - Header" || action === "Penalty - Scored" || action === "Goal - Volley" || action === "Goal - Free-kick" || action === "Own Goal") {
         const existingGoal = acc.find(item => item.playerName === playerName);
         if (existingGoal) {
           existingGoal.times.push(time);
@@ -103,7 +103,7 @@ const EventCard: React.FC<EventCardProps> = ({ event, sportId }) => {
             playerName,
             times: [time],
             logo: teamLogo,
-            action: action === "Own Goal" ? "🔴" : "⚽️"
+            action: action === "Own Goal" ? "🔴" : "⚽️",
           });
         }
       } else {
@@ -132,7 +132,7 @@ const EventCard: React.FC<EventCardProps> = ({ event, sportId }) => {
             height={15}
           />
           <span className={playerNameClass}>{moment.playerName}</span>
-          <span className="text-xs ml-1">{moment.times.join(' / ')}</span>
+          <span className="text-xs ml-1">{moment.times.join(', ')}</span>
         </div>
       );
     });
