@@ -1,4 +1,5 @@
 import { Button } from "./ui/Button";
+import sdk from "@farcaster/frame-sdk";
 
 const Watchalong = () => {
     return (
@@ -14,7 +15,9 @@ const Watchalong = () => {
                     referrerPolicy="strict-origin-when-cross-origin"
                     allowFullScreen
                 ></iframe> */}
-                <Button onClick={() => window.open('https://webrtctzn.glitch.me/?room=footy', '_blank')}>Join the watchalong</Button>
+                <Button onClick={() => window.open('https://webrtctzn.glitch.me/?room=footy', '_blank')}>Join watchalong from mobile</Button>
+                <Button onClick={() => sdk.actions.openUrl('https://webrtctzn.glitch.me/?room=footy')}>Join watchalong from desktop</Button>
+                <p className="text-notWhite">Watchalong is highly experimental. It uses a p2p communication protocol.</p>
             </div>
         </div>
     );
