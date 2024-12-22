@@ -15,9 +15,9 @@ const Watchalong = () => {
                     referrerPolicy="strict-origin-when-cross-origin"
                     allowFullScreen
                 ></iframe> */}
-                <Button onClick={() => window.open('https://webrtctzn.glitch.me/?room=footy', '_blank')}>Join watchalong from mobile</Button>
-                <Button onClick={() => sdk.actions.openUrl('https://webrtctzn.glitch.me/?room=footy')}>Join watchalong from desktop</Button>
-                <p className="text-notWhite">Watchalong is highly experimental. It uses a p2p communication protocol.</p>
+                <Button className='mb-4' onClick={() => window.open('https://webrtctzn.glitch.me/?room=footy', '_blank')}>Join watchalong from mobile</Button>
+                <Button className='mb-4' onClick={() => sdk.actions.openUrl('https://webrtctzn.glitch.me/?room=footy')}>Join watchalong from desktop</Button>
+                <p className="text-notWhite">Match watchalong is highly experimental. It uses a p2p communication protocol and will not cast on your behalf.</p>
             </div>
         </div>
     );
