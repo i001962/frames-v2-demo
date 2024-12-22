@@ -7,6 +7,7 @@ import TabNavigation from './TabNavigation';
 import MatchesTab from './MatchesTab';
 import FantasyTab from './FantasyTab';
 import FalseNineContent from './FalseNineContent';
+import Watchalong from './Watchalong';
 
 export default function Main() {
   const [isSDKLoaded, setIsSDKLoaded] = useState(false);
@@ -42,11 +43,14 @@ export default function Main() {
     <div className="w-[400px] mx-auto py-4 px-2">
       <TabNavigation selectedTab={selectedTab} setSelectedTab={setSelectedTab} />
       <div className="bg-darkPurple p-4 rounded-md text-white">
-        {selectedTab === 'matches' && 
-        <MatchesTab />}
-        {selectedTab === 'fantasy' && 
-        <FantasyTab />}
-         {selectedTab === 'falseNine' && <FalseNineContent />}
+        {selectedTab === 'matches' && <MatchesTab />}
+        {selectedTab === 'fantasy' && <FantasyTab />}
+        {selectedTab === 'falseNine' && <FalseNineContent />}
+        {selectedTab === 'lab' && <Watchalong />}
+        {/* Show generic "Coming soon" message if tab is unrecognized */}
+        {['matches', 'fantasy', 'falseNine', 'lab'].indexOf(selectedTab) === -1 && (
+          <div className="text-center text-lg text-fontRed">Coming soon...</div>
+        )}
       </div>
     </div>
   );
