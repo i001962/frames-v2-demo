@@ -104,16 +104,13 @@ const RAGameContext = async (
             text: event.text,
             team: event.team ? event.team.displayName : null,
             time: event.clock.displayValue,
+            prompt: `Describe match dynamics using present or past tense only depending on the match time clock. Focus on key players, strategies and tactics, and the match outcome.  Do not include any external links or markdown. Keep the response under 400 chararters long.`
           }));
         }
 
         const gameInfo = summaryData.gameInfo;
         const standings = summaryData.standings;
-        const prefixPrompt = {
-          prompt: `Provide a match preview for the upcoming match between ${competitors}. Describe the expected match dynamics using future tense only, such as key players, anticipated strategies, and possible match outcomes. Do **not** use past tense like 'won', 'lost', or 'defeated' if the match clock has not yet started, so focus on the **future** and avoid making definitive claims about the result. Do not include any external links or markdown.`
-        };
-
-        const jsonData = JSON.stringify({ prefixPrompt, summarizedEvents, gameInfo, standings });
+        const jsonData = JSON.stringify({ summarizedEvents, gameInfo, standings });
         const aiSummaryText = await sendOpenAi(jsonData, openAiApiKey || "");
 
         return aiSummaryText;  // Return AI-generated summary
