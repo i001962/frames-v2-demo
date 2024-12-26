@@ -258,7 +258,7 @@ const EventCard: React.FC<EventCardProps> = ({ event, sportId }) => {
 
             {/* AI Summary Button */}
             {!isAiSummaryGenerated && (
-              <Button className="w-full max-w-xs mx-auto block bg-deepPink text-white py-3 px-6 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-deepPink hover:bg-fontRed" onClick={fetchAiSummary}>Match Summary</Button>
+              <Button className="mt-2 w-full max-w-xs mx-auto block bg-deepPink text-white py-3 px-6 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-deepPink hover:bg-fontRed" onClick={fetchAiSummary}>Match Summary</Button>
             )}
 
             {gameContext && (
