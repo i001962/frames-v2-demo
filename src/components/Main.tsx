@@ -46,9 +46,9 @@ export default function Main() {
         {selectedTab === 'matches' && <MatchesTab />}
         {selectedTab === 'fantasy' && <FantasyTab />}
         {selectedTab === 'falseNine' && <FalseNineContent />}
-        {selectedTab === 'lab' && <Watchalong />}
+        {selectedTab === 'live Chat' && <Watchalong />}
         {/* Show generic "Coming soon" message if tab is unrecognized */}
-        {['matches', 'fantasy', 'falseNine', 'lab'].indexOf(selectedTab) === -1 && (
+        {['matches', 'fantasy', 'falseNine', 'live Chat'].indexOf(selectedTab) === -1 && (
           <div className="text-center text-lg text-fontRed">Coming soon...</div>
         )}
       </div>
