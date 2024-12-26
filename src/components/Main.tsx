@@ -8,6 +8,7 @@ import MatchesTab from './MatchesTab';
 import FantasyTab from './FantasyTab';
 import FalseNineContent from './FalseNineContent';
 import Watchalong from './Watchalong';
+import Scout from "./Scout";
 
 export default function Main() {
   const [isSDKLoaded, setIsSDKLoaded] = useState(false);
@@ -44,11 +45,12 @@ export default function Main() {
       <TabNavigation selectedTab={selectedTab} setSelectedTab={setSelectedTab} />
       <div className="bg-darkPurple p-4 rounded-md text-white">
         {selectedTab === 'matches' && <MatchesTab />}
-        {selectedTab === 'fantasy' && <FantasyTab />}
+        {selectedTab === 'FC FEPL' && <FantasyTab />}
         {selectedTab === 'falseNine' && <FalseNineContent />}
         {selectedTab === 'live Chat' && <Watchalong />}
+        {selectedTab === 'scout Players' && <Scout />}
         {/* Show generic "Coming soon" message if tab is unrecognized */}
-        {['matches', 'fantasy', 'falseNine', 'live Chat'].indexOf(selectedTab) === -1 && (
+        {['matches', 'FC FEPL', 'live Chat', 'scout Players', 'falseNine'].indexOf(selectedTab) === -1 && (
           <div className="text-center text-lg text-fontRed">Coming soon...</div>
         )}
       </div>
