@@ -30,7 +30,7 @@ export function WarpcastShareButton({ selectedMatch, targetElement }: WarpcastSh
       sdk.actions.openUrl(url);  // This is where you replace window.open with sdk.actions.openUrl
     }
   }, [selectedMatch]);
-  console.log('selectedMatch', selectedMatch); // TODO: Remove this console.log
+  console.log('targetElement', targetElement); // TODO: Remove this console.log
   // Function to capture screenshot
 /*   const takeScreenshot = async () => {
     try {
