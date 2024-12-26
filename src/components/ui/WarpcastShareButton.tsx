@@ -24,7 +24,7 @@ export function WarpcastShareButton({ selectedMatch, targetElement }: WarpcastSh
    const openWarpcastUrl = useCallback(() => {
     if (selectedMatch) {
       const { competitorsLong, homeTeam, awayTeam, homeScore, awayScore, clock, homeLogo, awayLogo, eventStarted } = selectedMatch;
-      const matchSummary = `${competitorsLong}\n${homeTeam} ${eventStarted ? homeScore : ''} - ${eventStarted ? awayScore : ''} ${awayTeam.toUpperCase()}\n${eventStarted ? `${clock}` : `Kickoff: ${clock}`}\n\nUsing the FC Footy mini-app https://d33m-frames-v2.vercel.app cc @kmacb.eth`;
+      const matchSummary = `${competitorsLong}\n${homeTeam} ${eventStarted ? homeScore : ''} - ${eventStarted ? awayScore : ''} ${awayTeam.toUpperCase()}\n${eventStarted ? `Clock: ${clock}`: `Kickoff: ${clock}`}\n\nUsing the FC Footy mini-app https://d33m-frames-v2.vercel.app cc @kmacb.eth`;
       const encodedSummary = encodeURIComponent(matchSummary);
       const url = `https://warpcast.com/~/compose?text=${encodedSummary}&channelKey=football&embeds[]=${homeLogo}&embeds[]=${awayLogo}`;
       sdk.actions.openUrl(url);  // This is where you replace window.open with sdk.actions.openUrl
