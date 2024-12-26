@@ -7,7 +7,7 @@ interface TabNavigationProps {
 }
 
 const TabNavigation: React.FC<TabNavigationProps> = ({ selectedTab, setSelectedTab }) => {
-  const tabs = ["matches", "fantasy", "falseNine", "lab", "banter", "merch"];
+  const tabs = ["matches", "FEPL", "live Chat", "footy Game", "scout", "falseNine"];  // TODO change to main tabs
 
   return (
     <div className="flex overflow-x-auto space-x-4 mb-4 sticky top-0 z-10 bg-darkPurple">

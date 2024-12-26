@@ -8,11 +8,19 @@ import MatchesTab from './MatchesTab';
 import FantasyTab from './FantasyTab';
 import FalseNineContent from './FalseNineContent';
 import Watchalong from './Watchalong';
+import PickIdeas from "./Scout";
+//import TheGame from "./CardGame";
+import DrawCards from "./GameDrawCards3";
+// import GameLauncher from "./GameLauncher";
 
 export default function Main() {
   const [isSDKLoaded, setIsSDKLoaded] = useState(false);
   const [context, setContext] = useState<FrameContext | undefined>(undefined);
   const [selectedTab, setSelectedTab] = useState("matches"); 
+  const [cardTotals, setCardTotals] = useState({ Red: 0, Yellow: 0, Blue: 0, Green: 0, Purple: 0 });
+  const updateCardTotals = (suit) => {
+    setCardTotals(prevTotals => ({ ...prevTotals, [suit]: prevTotals[suit] + 1 }));
+  };
 
   useEffect(() => {
     const load = async () => {
@@ -44,11 +52,14 @@ export default function Main() {
       <TabNavigation selectedTab={selectedTab} setSelectedTab={setSelectedTab} />
       <div className="bg-darkPurple p-4 rounded-md text-white">
         {selectedTab === 'matches' && <MatchesTab />}
-        {selectedTab === 'fantasy' && <FantasyTab />}
+        {selectedTab === 'FEPL' && <FantasyTab />}
         {selectedTab === 'falseNine' && <FalseNineContent />}
-        {selectedTab === 'lab' && <Watchalong />}
+        {selectedTab === 'live Chat' && <Watchalong />}
+        {selectedTab === 'scout' && <PickIdeas />}
+        {selectedTab === 'footy Game' &&  <DrawCards onCardDraw={updateCardTotals} />} 
+        {/*{selectedTab === 'play' && <GameLauncher />} */}
         {/* Show generic "Coming soon" message if tab is unrecognized */}
-        {['matches', 'fantasy', 'falseNine', 'lab'].indexOf(selectedTab) === -1 && (
+        {['matches', 'FEPL', 'falseNine', 'live Chat', 'scout', 'footy Game'].indexOf(selectedTab) === -1 && (
           <div className="text-center text-lg text-fontRed">Coming soon...</div>
         )}
       </div>
