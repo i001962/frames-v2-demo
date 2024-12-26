@@ -32,7 +32,7 @@ export function WarpcastShareButton({ selectedMatch, targetElement }: WarpcastSh
   }, [selectedMatch]);
 
   // Function to capture screenshot
-  const takeScreenshot = async () => {
+/*   const takeScreenshot = async () => {
     try {
       if (!targetElement) {
         alert("No element found to capture.");
@@ -63,11 +63,11 @@ export function WarpcastShareButton({ selectedMatch, targetElement }: WarpcastSh
       console.error("Failed to take screenshot:", error);
       alert("Failed to take screenshot. Please try again.");
     }
-  };
+  }; */
 
   return (
     <button
-      onClick={takeScreenshot} // Call takeScreenshot on click
+      onClick={openWarpcastUrl} // Call takeScreenshot on click
       className={`w-full max-w-xs mx-auto block bg-deepPink text-white py-3 px-6 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-deepPink hover:bg-fontRed`}
     >
       Cast
