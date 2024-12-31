@@ -1,9 +1,12 @@
 import sdk from "@farcaster/frame-sdk";
 import { SwitchChainError, fromHex, getAddress, numberToHex } from "viem";
-
-import { ChainNotConfiguredError, createConnector } from "wagmi";
+import { ChainNotConfiguredError, Connector, createConnector } from "wagmi";
 
 frameConnector.type = "frameConnector" as const;
+
+let accountsChanged: Connector['onAccountsChanged'] | undefined
+let chainChanged: Connector['onChainChanged'] | undefined
+let disconnect: Connector['onDisconnect'] | undefined
 
 export function frameConnector() {
   let connected = true;
@@ -22,6 +25,20 @@ export function frameConnector() {
         method: "eth_requestAccounts",
       });
 
+      if (!accountsChanged) {
+        accountsChanged = this.onAccountsChanged.bind(this)
+        // @ts-expect-error - provider type is stricter
+        provider.on('accountsChanged', accountsChanged)
+      }
+      if (!chainChanged) {
+        chainChanged = this.onChainChanged.bind(this)
+        provider.on('chainChanged', chainChanged)
+      }
+      if (!disconnect) {
+        disconnect = this.onDisconnect.bind(this)
+        provider.on('disconnect', disconnect)
+      }
+
       let currentChainId = await this.getChainId();
       if (chainId && currentChainId !== chainId) {
         const chain = await this.switchChain!({ chainId });
@@ -36,12 +53,32 @@ export function frameConnector() {
       };
     },
     async disconnect() {
+      const provider = await this.getProvider()
+
+      if (accountsChanged) {
+        // @ts-expect-error - provider type is stricter
+        provider.removeListener('accountsChanged', accountsChanged)
+        accountsChanged = undefined
+      }
+
+      if (chainChanged) {
+        provider.removeListener('chainChanged', chainChanged)
+        chainChanged = undefined
+      }
+
+      if (disconnect) {
+        provider.removeListener('disconnect', disconnect)
+        disconnect = undefined
+      }
+
       connected = false;
     },
     async getAccounts() {
       if (!connected) throw new Error("Not connected");
       const provider = await this.getProvider();
-      const accounts = await provider.request({ method: "eth_accounts" });
+      const accounts = await provider.request({
+        method: "eth_requestAccounts",
+      });
       return accounts.map((x) => getAddress(x));
     },
     async getChainId() {
@@ -66,6 +103,13 @@ export function frameConnector() {
         method: "wallet_switchEthereumChain",
         params: [{ chainId: numberToHex(chainId) }],
       });
+
+      // providers should start emitting these events - remove when hosts have upgraded
+      //
+      // explicitly emit this event as a workaround for ethereum provider not
+      // emitting events, can remove once events are flowing
+      config.emitter.emit("change", { chainId });
+
       return chain;
     },
     onAccountsChanged(accounts) {
