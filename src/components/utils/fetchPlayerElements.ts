@@ -3,9 +3,11 @@ import axios from 'axios';
 
 interface Player {
   id: number;
-  webName: string;
+  web_name: string;
   xgi90: number;
   xgc90: number;
+  expected_goal_involvements_per_90: number;
+  expected_goals_conceded_per_90: number;
   expected_goals_per_90: number;
   saves_per_90: number;
   expected_assists_per_90: number;
@@ -62,7 +64,8 @@ export const fetchPlayerElements = async () => {
     const playersWithStats = data.elements.map((player: Player) => {
       const teamName = teams[player.team]; // Get the full team name
       const teamAbbreviation = teamAbbreviations[teamName]; // Get the abbreviation from the map
-    console.log('teamAbbreviation', teamAbbreviation,teams[player.team]);
+      // console.log('teamAbbreviation', teamAbbreviation,teams[player.team]);
+      // console.log('webName', player);
       return {
         id: player.id,
         webName: player.web_name,

@@ -17,10 +17,7 @@ export default function Main() {
   const [isSDKLoaded, setIsSDKLoaded] = useState(false);
   const [context, setContext] = useState<FrameContext | undefined>(undefined);
   const [selectedTab, setSelectedTab] = useState("matches"); 
-  const [cardTotals, setCardTotals] = useState({ Red: 0, Yellow: 0, Blue: 0, Green: 0, Purple: 0 });
-  const updateCardTotals = (suit) => {
-    setCardTotals(prevTotals => ({ ...prevTotals, [suit]: prevTotals[suit] + 1 }));
-  };
+ 
 
   useEffect(() => {
     const load = async () => {
@@ -56,7 +53,7 @@ export default function Main() {
         {selectedTab === 'falseNine' && <FalseNineContent />}
         {selectedTab === 'live Chat' && <Watchalong />}
         {selectedTab === 'scout' && <PickIdeas />}
-        {selectedTab === 'footy Game' &&  <DrawCards onCardDraw={updateCardTotals} />} 
+        {selectedTab === 'footy Game' &&  <DrawCards />} 
         {/*{selectedTab === 'play' && <GameLauncher />} */}
         {/* Show generic "Coming soon" message if tab is unrecognized */}
         {['matches', 'FEPL', 'falseNine', 'live Chat', 'scout', 'footy Game'].indexOf(selectedTab) === -1 && (

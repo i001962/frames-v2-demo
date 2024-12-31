@@ -1,66 +1,59 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Button } from "./ui/Button";
 import { fetchPlayerElements } from "./utils/fetchPlayerElements";
+import { useSendTransaction, useWaitForTransactionReceipt } from "wagmi"; // Move this import into the component
+import sdk, {
+  type FrameContext,
+} from "@farcaster/frame-sdk";
+import uploadJsonToIPFS from "./utils/uploadJsonToIPFS";
+import { ethers } from 'ethers';
+import { useAccount } from "wagmi";
+import { BaseError, UserRejectedRequestError } from "viem";
+import { truncateAddress } from "../components/utils/truncateAdress";
 
-// Player cards data with additional fields: Position, xGoals90m, xConceded90m
-/* const players = [
-  {
-    id: 1,
-    name: "Player 1",
-    image:
-      "https://tjftzpjqfqnbtvodsigk.supabase.co/storage/v1/object/public/d33m_images/epl_players/223723.png",
-    position: "Forward",
-    xGoals90m: 0.5,
-    xConceded90m: 0.3,
-  },
-  {
-    id: 2,
-    name: "Player 2",
-    image:
-      "https://tjftzpjqfqnbtvodsigk.supabase.co/storage/v1/object/public/d33m_images/epl_players/114241.png",
-    position: "Midfielder",
-    xGoals90m: 0.3,
-    xConceded90m: 0.1,
-  },
-  {
-    id: 3,
-    name: "Player 3",
-    image:
-      "https://tjftzpjqfqnbtvodsigk.supabase.co/storage/v1/object/public/d33m_images/epl_players/116535.png",
-    position: "Defender",
-    xGoals90m: 0.1,
-    xConceded90m: 0.4,
-  },
-  {
-    id: 4,
-    name: "Player 4",
-    image:
-      "https://tjftzpjqfqnbtvodsigk.supabase.co/storage/v1/object/public/d33m_images/epl_players/172780.png",
-    position: "Goalkeeper",
-    xGoals90m: 0.0,
-    xConceded90m: 0.2,
-  },
-  {
-    id: 5,
-    name: "Player 5",
-    image:
-      "https://tjftzpjqfqnbtvodsigk.supabase.co/storage/v1/object/public/d33m_images/epl_players/209289.png",
-    position: "Forward",
-    xGoals90m: 0.6,
-    xConceded90m: 0.3,
-  },
-]; */
+/* interface PinResponse {
+  IpfsHash: string;
+  PinSize: number;
+  Timestamp: string;
+  isDuplicate?: boolean;
+} */
+
+const abiCoder = new ethers.AbiCoder();
 
 const PlayerCardScroll = () => {
   // State to keep track of cart items with quantities
   const [cartItems, setCartItems] = useState<Map<number, number>>(new Map());
   // Timer state
-  const [timer, setTimer] = useState<number>(10);
+  const [timer, setTimer] = useState<number>(5);
   const [timerRunning, setTimerRunning] = useState<boolean>(false);
   const [isCheckedOut, setIsCheckedOut] = useState<boolean>(false); // Track checkout status
-  const [players, setPlayers] = useState<any[]>([]);
+  const [players, setPlayers] = useState<unknown[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isSDKLoaded, setIsSDKLoaded] = useState(false);    
+  const [context, setContext] = useState<FrameContext>();
+  const [txHash, setTxHash] = useState<string | null>(null);
+
+  const [isMinting, setIsMinting] = useState(false);  // Minting in progress state
+  const [mintingError, setMintingError] = useState<string | null>(null);  // Error state for minting
+  const [mintingSuccess, setMintingSuccess] = useState<string | null>(null);  // Success message
+
+  // TODO - CREATE or get this ABI this one is not correct
+
+  const { address, isConnected } = useAccount();
+
+  useEffect(() => {
+    const load = async () => {
+      const ctx = await sdk.context;
+      setContext(ctx);
+      sdk.actions.ready();
+    };
+
+    if (sdk && !isSDKLoaded) {
+      setIsSDKLoaded(true);
+      load();
+    }
+  }, [isSDKLoaded]);
 
   // Fetch player data from the API
   useEffect(() => {
@@ -77,9 +70,9 @@ const PlayerCardScroll = () => {
           return xgiPer90B - xgiPer90A; // Sort in descending order
         });
 
-        // Only take the top 2 players
+        // Only take the top 20 players
         const topPlayers = sortedPlayers.slice(0, 20);
-
+        console.log('topPlayers', topPlayers);
         setPlayers(topPlayers);
         console.log('data', topPlayers);
       } catch (error) {
@@ -152,23 +145,138 @@ const PlayerCardScroll = () => {
     });
   };
 
-  // Handle checkout
-  const handleCheckout = () => {
-    console.log("Checking out with the following items:");
-    Array.from(cartItems.entries()).forEach(([id, quantity]) => {
-      const card = players.find((card) => card.id === id);
-      if (card) {
-        console.log(`${card.name} - Quantity: ${quantity}`);
+  // useSendTransaction hook to send the transaction
+  const {
+    sendTransaction,
+    error: sendTxError,
+    isError: isSendTxError,
+    isPending: isSendTxPending,
+  } = useSendTransaction();
+
+  const { isLoading: isConfirming, isSuccess: isConfirmed } =
+  useWaitForTransactionReceipt({
+    hash: txHash as `0x${string}`,
+  });
+
+  // Updated handleCheckout to include sendTx inside useCallback
+  const sendTx = useCallback(async (recipient: string, ipfsHash: string) => {
+    const functionSignature = "0x3db13784"; // TODO ABI THIS but likely to change with new contract
+    const encodedData = abiCoder.encode(
+      ['address', 'string'],
+      [recipient, ipfsHash]
+    );
+    // Combine the function selector and the encoded data
+    const formattedData = functionSignature + encodedData.slice(2); // Remove "0x" from the encoded data
+
+    try {
+      await sendTransaction({
+        to: "0xAC4506a1F2A90DdB477D24716D96b6E49591B4b0", // Contract address
+        data: formattedData, // ABI-encoded data
+        //gasLimit: 1000000,  // Example gas limit
+      },
+      {
+        onSuccess: (hash) => {
+          setTxHash(hash);
+        },
+      });
+      console.log("Transaction sent successfully.");
+    } catch (error) {
+      console.error("Error sending transaction:", error);
+    }
+  }, [sendTransaction]);
+
+  const handleCheckout = async () => {
+    if (!context) {
+      setError("Context is not available");
+      return;
+    }
+
+    try {
+      setIsMinting(true); // Set minting state to true to show loading message
+
+      const cid = await uploadJsonToIPFS(Array.from(cartItems.entries()), context);
+      if (!cid) {
+        throw new Error("Failed to upload to IPFS");
       }
-    });
-    setIsCheckedOut(true); // Mark as checked out
+
+      const defifalogo = 'bafybeihxxnb7xt5vglgvgnxbhiqnjvqkaqtxuitluzdkp6sn54x2mdwcae';
+
+      const metadata = {
+        name: "FC Footy Test NFT",
+        description: "This work is dedicated to the public domain via CC0...",
+        image: `ipfs://${defifalogo}`,
+        content: { mime: "image/png", uri: `ipfs://${defifalogo}` },
+        attributes: [
+          { trait_type: "License", value: "CC0" },
+          { trait_type: "Theme", value: "FC Footy test" },
+          { trait_type: "FID", value: context.user.fid },
+          { trait_type: "UserName", value: context.user.username },
+          { trait_type: "GameWeek", value: "GW18" }
+        ]
+      };
+
+      const additionalTraits = Array.from(cartItems.entries()).map(([id, quantity]) => ({
+        trait_type: `Player ${id}`,
+        value: `Quantity: ${quantity}`,
+      }));
+
+      metadata.attributes = [...metadata.attributes, ...additionalTraits];
+
+      const metadataCid = await uploadJsonToIPFS(metadata, context);
+      if (!metadataCid) {
+        throw new Error("Failed to upload metadata to IPFS");
+      }
+
+      if (address) {
+        const recipient = address;
+        const ipfsHash = `ipfs://${metadataCid.IpfsHash}`;
+        await sendTx(recipient, ipfsHash);
+      } else {
+        throw new Error("No address found");
+      }
+
+      //setMintingSuccess("Transaction sent to your wallet for approval.");
+      setIsCheckedOut(true);
+      setCartItems(new Map()); // Reset cart after checkout
+    } catch (error) {
+      setMintingError("Error during checkout: " + error.message);
+    } finally {
+      setIsMinting(false); // End minting process (loading state)
+    }
   };
 
+  const renderError = (error: Error | null) => {
+    if (!error) return null;
+    if (error instanceof BaseError) {
+      const isUserRejection = error.walk(
+        (e) => e instanceof UserRejectedRequestError
+      );
+  
+      if (isUserRejection) {
+        return <div className="text-red-500 text-xs mt-1">Transaction rejected. Try again.</div>;
+      }
+    }
+    console.error(error);
+    return <div className="text-red-500 text-xs mt-1">{error.message}</div>;
+  };
+
+    const handleBasescanClick = () => {
+      sdk.actions.openUrl(txHash?`https://basescan.org/address/${txHash}`:'https://basescan.org/');  
+      
+    };
+
   return (
-      <div className="mb-4">
-        {/* Horizontal Scrollable Menu for Tabs */}
-        <h2 className="font-2xl text-notWhite font-bold mb-4">Guess Top Scorers</h2>
-       
+    <div className="mb-4">
+      <h2 className="font-2xl text-notWhite font-bold mb-4">Guess Top Scorers</h2>
+
+      {/* Display loading message */}
+
+      {/* Display error message */}
+      {mintingError && <p className="error">{mintingError}</p>}
+
+      {/* Display success message */}
+      {mintingSuccess && <p className="success">{mintingSuccess}</p>}
+
       {/* Player Cards Scroll */}
       <div className="flex overflow-x-auto space-x-4 mb-4 sticky top-0 z-10 bg-darkPurple p-4">
         {players.map((card) => (
@@ -189,12 +297,11 @@ const PlayerCardScroll = () => {
             <div className="text-center">{card.webName}</div>
             <div className="text-xs text-center text-lightPurple">{card.position}</div>
             <div className="text-xs text-center text-gray-400">
-              xGoal Invovle 90m: {card.xgi90.toFixed(2)}
+              xGoal Involvement 90m: {card.xgi90.toFixed(2)}
             </div>
             <div className="text-xs text-center text-gray-400">
               xConceded 90m: {card.xgc90.toFixed(2)}
             </div>
-            {/* Show remove button if the card is in the cart */}
             {cartItems.get(card.id) > 0 && (
               <div className="flex items-center justify-between">
                 <span className="text-xs text-lightPurple ml-2">
@@ -218,16 +325,20 @@ const PlayerCardScroll = () => {
       {/* Cart Summary */}
       <div className="mt-6 p-4 bg-gray-800 text-lightPurple rounded-lg">
         <h3 className="font-semibold text-notWhite text-lg">Selected</h3>
+        {isMinting && <p>Minting in progress, please wait...</p>}
         <div>
-          {cartItems.size === 0 ? (
+          {cartItems.size === 0 && !isCheckedOut ? (
             <p>No players selected</p>
           ) : (
-            <ul>
+            <ul className="grid grid-cols-2 gap-1">
               {Array.from(cartItems.entries()).map(([id, quantity]) => {
                 const card = players.find((card) => card.id === id);
                 return (
-                  <li key={id} className="mb-2">
-                    {card?.webName} - {quantity}
+                  <li key={id} className="mb-1">
+                    <div className="flex justify-leftitems-center">
+                      <span className="mr-1">({quantity})</span>
+                      <span> {card?.webName}</span>
+                    </div>
                   </li>
                 );
               })}
@@ -242,15 +353,28 @@ const PlayerCardScroll = () => {
           <p>Time remaining: {timer}s</p>
         ) : (
           <>
-            <Button onClick={() => setTimer(10)}>Reset Timer</Button>
-            {/* Show Checkout Button after the timer ends */}
-            {!isCheckedOut && (
-              <button
-                onClick={handleCheckout}
-                className="mt-4 bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
-              >
-                Checkout
-              </button>
+            {timer <= 0 && !isCheckedOut && (
+              <Button onClick={handleCheckout} 
+              disabled={!isConnected || isSendTxPending}
+              isLoading={isSendTxPending}
+              className="mt-4 text-white py-2 px-4 rounded">
+                Save / Mint
+              </Button>)}
+            {isSendTxError && renderError(sendTxError)}
+            {txHash && (
+              <div className="mt-2 text-xs">
+                <Button onClick={handleBasescanClick} className="text-white py-2 px-4 rounded">
+                    Picks saved - View on Basescan
+                  </Button>
+                <div>
+                  Status:{" "}
+                  {isConfirming
+                    ? "Confirming..."
+                    : isConfirmed
+                    ? "Confirmed!"
+                    : "Pending"}
+                </div>
+              </div>
             )}
           </>
         )}
